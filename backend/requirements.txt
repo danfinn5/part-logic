@@ -1,0 +1,24 @@
+# PartLogic Backend Requirements
+# Python 3.11+
+
+# FastAPI and server
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+
+# HTTP client
+httpx==0.25.2
+
+# Configuration
+pydantic-settings==2.5.2
+pydantic==2.9.2
+
+# Redis
+redis[hiredis]==5.0.1
+
+# Web scraping
+beautifulsoup4==4.12.2
+# Note: Using html.parser instead of lxml to avoid system dependencies
+# If you prefer lxml, install: sudo dnf install libxml2-devel libxslt-devel python3-devel
+
+# Utilities
+python-dotenv==1.0.0
