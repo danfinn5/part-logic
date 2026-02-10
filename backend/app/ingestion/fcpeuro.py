@@ -1,6 +1,6 @@
 """
-Partsouq link generator connector.
-Generates search URLs for OEM parts diagrams on Partsouq.
+FCP Euro link generator connector.
+Generates search URLs for European car parts with lifetime guarantee.
 """
 from typing import Dict, Any
 from urllib.parse import quote_plus
@@ -9,20 +9,20 @@ from app.schemas.search import ExternalLink
 from app.utils.part_numbers import extract_part_numbers
 
 
-class PartsouqConnector(BaseConnector):
-    """Partsouq OEM parts diagram link generator."""
+class FCPEuroConnector(BaseConnector):
+    """FCP Euro link generator."""
 
     def __init__(self):
-        super().__init__("partsouq")
+        super().__init__("fcpeuro")
 
     async def search(self, query: str, **kwargs) -> Dict[str, Any]:
-        """Generate Partsouq search links."""
+        """Generate FCP Euro search links."""
         encoded = quote_plus(query)
         links = [
             ExternalLink(
-                label=f"OEM diagrams on Partsouq for '{query}'",
-                url=f"https://partsouq.com/en/search/all?q={encoded}",
-                source="partsouq",
+                label=f"Search FCP Euro for '{query}'",
+                url=f"https://www.fcpeuro.com/search?query={encoded}",
+                source="fcpeuro",
                 category="new_parts",
             )
         ]
@@ -31,9 +31,9 @@ class PartsouqConnector(BaseConnector):
         for pn in part_numbers:
             encoded_pn = quote_plus(pn)
             links.append(ExternalLink(
-                label=f"Partsouq OEM: {pn}",
-                url=f"https://partsouq.com/en/search/all?q={encoded_pn}",
-                source="partsouq",
+                label=f"FCP Euro: {pn}",
+                url=f"https://www.fcpeuro.com/search?query={encoded_pn}",
+                source="fcpeuro",
                 category="new_parts",
             ))
 

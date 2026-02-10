@@ -1,6 +1,6 @@
 """
-Partsouq link generator connector.
-Generates search URLs for OEM parts diagrams on Partsouq.
+PartsGeek link generator connector.
+Generates search URLs for PartsGeek auto parts.
 """
 from typing import Dict, Any
 from urllib.parse import quote_plus
@@ -9,20 +9,20 @@ from app.schemas.search import ExternalLink
 from app.utils.part_numbers import extract_part_numbers
 
 
-class PartsouqConnector(BaseConnector):
-    """Partsouq OEM parts diagram link generator."""
+class PartsGeekConnector(BaseConnector):
+    """PartsGeek link generator."""
 
     def __init__(self):
-        super().__init__("partsouq")
+        super().__init__("partsgeek")
 
     async def search(self, query: str, **kwargs) -> Dict[str, Any]:
-        """Generate Partsouq search links."""
+        """Generate PartsGeek search links."""
         encoded = quote_plus(query)
         links = [
             ExternalLink(
-                label=f"OEM diagrams on Partsouq for '{query}'",
-                url=f"https://partsouq.com/en/search/all?q={encoded}",
-                source="partsouq",
+                label=f"Search PartsGeek for '{query}'",
+                url=f"https://www.partsgeek.com/search.html?query={encoded}",
+                source="partsgeek",
                 category="new_parts",
             )
         ]
@@ -31,9 +31,9 @@ class PartsouqConnector(BaseConnector):
         for pn in part_numbers:
             encoded_pn = quote_plus(pn)
             links.append(ExternalLink(
-                label=f"Partsouq OEM: {pn}",
-                url=f"https://partsouq.com/en/search/all?q={encoded_pn}",
-                source="partsouq",
+                label=f"PartsGeek: {pn}",
+                url=f"https://www.partsgeek.com/search.html?query={encoded_pn}",
+                source="partsgeek",
                 category="new_parts",
             ))
 
