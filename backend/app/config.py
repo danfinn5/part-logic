@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     rate_limit_delay: float = 1.0  # seconds between requests
     max_results_per_source: int = 20
 
+    # Scraping Configuration
+    scrape_enabled: bool = True  # Global kill switch; false = all connectors use link generation
+    playwright_enabled: bool = True  # Disable if Chromium not installed
+
     # Car-Part.com Configuration
     carpart_default_zip: Optional[str] = None
 

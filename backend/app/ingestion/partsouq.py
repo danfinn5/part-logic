@@ -1,22 +1,124 @@
 """
-Partsouq link generator connector.
-Generates search URLs for OEM parts diagrams on Partsouq.
+Partsouq OEM parts connector.
+
+Scrapes OEM part listings from Partsouq.com.
+Falls back to link generation on failure.
 """
+import logging
 from typing import Dict, Any
 from urllib.parse import quote_plus
+from bs4 import BeautifulSoup
 from app.ingestion.base import BaseConnector
-from app.schemas.search import ExternalLink
+from app.schemas.search import MarketListing, ExternalLink
+from app.config import settings
+from app.utils.scraping import fetch_html, parse_price
+from app.utils.normalization import clean_url
 from app.utils.part_numbers import extract_part_numbers
+
+logger = logging.getLogger(__name__)
 
 
 class PartsouqConnector(BaseConnector):
-    """Partsouq OEM parts diagram link generator."""
+    """Partsouq OEM parts diagram scraper."""
 
     def __init__(self):
         super().__init__("partsouq")
 
     async def search(self, query: str, **kwargs) -> Dict[str, Any]:
-        """Generate Partsouq search links."""
+        """Search Partsouq. Scrapes results when enabled, otherwise generates links."""
+        if not settings.scrape_enabled:
+            return self._generate_links(query, kwargs)
+
+        try:
+            results = await self._scrape(query, **kwargs)
+            results["external_links"] = [self._see_more_link(query)]
+            return results
+        except Exception as e:
+            logger.warning(f"Partsouq scrape failed: {e}")
+            return self._generate_links(query, kwargs)
+
+    async def _scrape(self, query: str, **kwargs) -> Dict[str, Any]:
+        """Fetch and parse Partsouq search results."""
+        encoded = quote_plus(query)
+        url = f"https://partsouq.com/en/search/all?q={encoded}"
+        html, _ = await fetch_html(url)
+        soup = BeautifulSoup(html, "html.parser")
+
+        listings = []
+
+        # Partsouq shows part results in a list/card format
+        products = soup.select(
+            ".part-item, .search-result-item, .product-item, "
+            "[class*='part-item'], [class*='search-result'], "
+            "[class*='product'], .result-row"
+        )
+
+        for product in products:
+            # Title / part name
+            title_el = product.select_one(
+                ".part-name, .product-name, .title, h3, h4, "
+                "[class*='name'], [class*='title'] a"
+            )
+            title = title_el.get_text(strip=True) if title_el else ""
+
+            # OEM part number
+            pn_el = product.select_one(
+                ".part-number, .oem-number, [class*='partNumber'], "
+                "[class*='part-num'], [class*='oem'], .sku"
+            )
+            part_num = pn_el.get_text(strip=True) if pn_el else ""
+
+            # Price (may not always be available on Partsouq)
+            price_el = product.select_one(
+                ".price, .product-price, [class*='price']"
+            )
+            price = parse_price(price_el.get_text(strip=True)) if price_el else 0.0
+
+            # URL
+            link_tag = product.select_one("a[href]")
+            product_url = ""
+            if link_tag:
+                href = link_tag.get("href", "")
+                if href.startswith("/"):
+                    product_url = f"https://partsouq.com{href}"
+                else:
+                    product_url = clean_url(href)
+
+            # Image
+            img_tag = product.select_one("img[src], img[data-src]")
+            image_url = None
+            if img_tag:
+                image_url = img_tag.get("data-src") or img_tag.get("src", "")
+                if image_url and not image_url.startswith("http"):
+                    image_url = f"https://partsouq.com{image_url}"
+
+            if not title and not part_num:
+                continue
+
+            part_numbers = [part_num] if part_num else extract_part_numbers(title)
+
+            listings.append(MarketListing(
+                source="partsouq",
+                title=title or f"OEM Part {part_num}",
+                price=price,
+                condition="New",
+                url=product_url or url,
+                part_numbers=part_numbers,
+                image_url=image_url,
+            ))
+
+            if len(listings) >= settings.max_results_per_source:
+                break
+
+        return {
+            "market_listings": listings,
+            "salvage_hits": [],
+            "external_links": [],
+            "error": None,
+        }
+
+    def _generate_links(self, query: str, kwargs: dict = None) -> Dict[str, Any]:
+        """Generate Partsouq search links (fallback)."""
         encoded = quote_plus(query)
         links = [
             ExternalLink(
@@ -27,7 +129,7 @@ class PartsouqConnector(BaseConnector):
             )
         ]
 
-        part_numbers = kwargs.get("part_numbers") or extract_part_numbers(query)
+        part_numbers = (kwargs or {}).get("part_numbers") or extract_part_numbers(query)
         for pn in part_numbers:
             encoded_pn = quote_plus(pn)
             links.append(ExternalLink(
@@ -43,3 +145,13 @@ class PartsouqConnector(BaseConnector):
             "external_links": links,
             "error": None,
         }
+
+    def _see_more_link(self, query: str) -> ExternalLink:
+        """Single 'see more' link for Partsouq."""
+        encoded = quote_plus(query)
+        return ExternalLink(
+            label="See all results on Partsouq",
+            url=f"https://partsouq.com/en/search/all?q={encoded}",
+            source="partsouq",
+            category="new_parts",
+        )
