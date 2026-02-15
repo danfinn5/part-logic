@@ -111,6 +111,49 @@ export interface SearchResponse {
   warnings: string[];
   cached: boolean;
   intelligence?: PartIntelligence | null;
+  ai_analysis?: AIAnalysis | null;
+}
+
+/* ── AI Analysis Types ────────────────────────────────────────────── */
+
+export interface BuyLink {
+  store: string;
+  url: string;
+}
+
+export interface AIRecommendation {
+  rank: number;
+  grade: string; // "best_overall", "also_great", "budget_pick", "performance", "value_pick"
+  brand: string;
+  part_number: string;
+  title: string;
+  why: string;
+  quality_tier: string;
+  quality_score: number;
+  estimated_price_low: number;
+  estimated_price_high: number;
+  best_retailers: string[];
+  buy_links: BuyLink[];
+}
+
+export interface AIAvoidItem {
+  brand: string;
+  reason: string;
+}
+
+export interface AIAnalysis {
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  vehicle_generation?: string | null;
+  vehicle_years?: string | null;
+  part_type?: string | null;
+  is_consumable?: boolean;
+  oem_part_numbers?: string[];
+  recommendations?: AIRecommendation[];
+  avoid?: AIAvoidItem[];
+  notes?: string | null;
+  relevant_makes?: string[];
+  error?: string | null;
 }
 
 export type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'value';

@@ -135,6 +135,54 @@ class ListingGroup(BaseModel):
     best_value_score: float = 0.0
 
 
+class BuyLink(BaseModel):
+    """Direct buy link for a recommended part."""
+
+    store: str
+    url: str
+
+
+class AIRecommendation(BaseModel):
+    """AI-generated product recommendation."""
+
+    rank: int = 0
+    grade: str = ""  # "best_overall", "also_great", "budget_pick", "performance", "value_pick"
+    brand: str = ""
+    part_number: str = ""
+    title: str = ""
+    why: str = ""
+    quality_tier: str = "unknown"
+    quality_score: float = 0.0
+    estimated_price_low: float = 0.0
+    estimated_price_high: float = 0.0
+    best_retailers: list[str] = Field(default_factory=list)
+    buy_links: list[BuyLink] = Field(default_factory=list)
+
+
+class AIAvoidItem(BaseModel):
+    """Brand/product to avoid for this application."""
+
+    brand: str = ""
+    reason: str = ""
+
+
+class AIAnalysis(BaseModel):
+    """AI-powered analysis of the search query and part recommendations."""
+
+    vehicle_make: str | None = None
+    vehicle_model: str | None = None
+    vehicle_generation: str | None = None
+    vehicle_years: str | None = None
+    part_type: str | None = None
+    is_consumable: bool = False
+    oem_part_numbers: list[str] = Field(default_factory=list)
+    recommendations: list[AIRecommendation] = Field(default_factory=list)
+    avoid: list[AIAvoidItem] = Field(default_factory=list)
+    notes: str | None = None
+    relevant_makes: list[str] = Field(default_factory=list)
+    error: str | None = None
+
+
 class SearchResponse(BaseModel):
     """Response from /search endpoint."""
 
@@ -146,3 +194,4 @@ class SearchResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     cached: bool = False
     intelligence: PartIntelligence | None = None
+    ai_analysis: AIAnalysis | None = None

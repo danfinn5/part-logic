@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { SearchResponse, SortOption, ViewMode } from './lib/types';
 import { searchParts } from './lib/api';
-import IntelligencePanel from './components/IntelligencePanel';
-import BrandComparison from './components/BrandComparison';
+import AIRecommendations from './components/AIRecommendations';
 import ComparisonView from './components/ComparisonView';
 import ListingGrid from './components/ListingGrid';
 import SalvageSection from './components/SalvageSection';
@@ -50,10 +49,12 @@ export default function Home() {
   };
 
   const intel = data?.intelligence;
+  const ai = data?.ai_analysis;
+  const hasAI = ai && (ai.recommendations?.length ?? 0) > 0;
   const hasListings = data && data.results.market_listings.length > 0;
   const hasSalvage = data && data.results.salvage_hits.length > 0;
   const hasLinks = data && data.results.external_links.length > 0;
-  const hasResults = hasListings || hasSalvage || hasLinks;
+  const hasResults = hasAI || hasListings || hasSalvage || hasLinks;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -164,29 +165,21 @@ export default function Home() {
             )}
           </div>
 
-          {/* Intelligence */}
-          {intel && (
-            <IntelligencePanel
-              intelligence={intel}
-              onSearchPartNumber={handleSearchPartNumber}
-            />
+          {/* AI Recommendations — the primary experience */}
+          {hasAI && ai && (
+            <AIRecommendations analysis={ai} />
           )}
 
-          {/* Warnings (collapsed) */}
+          {/* Warnings (collapsed, less prominent) */}
           {data.warnings.length > 0 && (
             <details className="text-sm">
-              <summary className="cursor-pointer text-amber-600 font-medium">
-                {data.warnings.length} source warning{data.warnings.length > 1 ? 's' : ''}
+              <summary className="cursor-pointer text-slate-400 hover:text-slate-600 transition-colors">
+                {data.warnings.length} source note{data.warnings.length > 1 ? 's' : ''}
               </summary>
-              <ul className="mt-2 ml-4 space-y-1 text-slate-500 text-xs list-disc">
+              <ul className="mt-2 ml-4 space-y-1 text-slate-400 text-xs list-disc">
                 {data.warnings.map((w, i) => <li key={i}>{w}</li>)}
               </ul>
             </details>
-          )}
-
-          {/* Brand comparison */}
-          {intel && intel.brand_comparison.length > 0 && (
-            <BrandComparison brands={intel.brand_comparison} />
           )}
 
           {/* Results section */}
