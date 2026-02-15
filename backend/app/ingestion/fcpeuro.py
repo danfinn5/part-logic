@@ -4,19 +4,24 @@ FCP Euro connector.
 Parses FCP Euro search results from server-rendered HTML.
 FCP Euro embeds structured product data in GTM event attributes
 and uses .hit cards for product display.
+
+This is one of the most reliable scrapers — no JS rendering needed,
+structured data available, and no aggressive bot blocking.
 Falls back to link generation on failure.
 """
+
 import json
 import logging
-from typing import Dict, Any
+from typing import Any
 from urllib.parse import quote_plus
+
 from bs4 import BeautifulSoup
-from app.ingestion.base import BaseConnector
-from app.schemas.search import MarketListing, ExternalLink
+
 from app.config import settings
-from app.utils.scraping import fetch_html, parse_price
-from app.utils.normalization import clean_url
+from app.ingestion.base import BaseConnector
+from app.schemas.search import ExternalLink, MarketListing
 from app.utils.part_numbers import extract_part_numbers
+from app.utils.scraping import fetch_html, parse_price
 
 logger = logging.getLogger(__name__)
 
@@ -27,33 +32,37 @@ class FCPEuroConnector(BaseConnector):
     def __init__(self):
         super().__init__("fcpeuro")
 
-    async def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def search(self, query: str, **kwargs) -> dict[str, Any]:
         """Search FCP Euro. Scrapes real results, falls back to links."""
         if not settings.scrape_enabled:
             return self._generate_links(query, kwargs)
 
         try:
             results = await self._scrape(query, **kwargs)
-            results["external_links"] = [self._see_more_link(query)]
-            return results
+            if results["market_listings"]:
+                results["external_links"] = [self._see_more_link(query)]
+                return results
+            # No results from scrape — fall through to links
+            logger.info("FCP Euro scrape returned 0 listings, generating links instead")
         except Exception as e:
             logger.warning(f"FCP Euro scrape failed: {e}")
-            return self._generate_links(query, kwargs)
 
-    async def _scrape(self, query: str, **kwargs) -> Dict[str, Any]:
+        return self._generate_links(query, kwargs)
+
+    async def _scrape(self, query: str, **kwargs) -> dict[str, Any]:
         """Fetch and parse FCP Euro search results."""
         encoded = quote_plus(query)
         url = f"https://www.fcpeuro.com/products?keywords={encoded}"
-        html, _ = await fetch_html(url)
+        html, status = await fetch_html(url, retries=2)
         soup = BeautifulSoup(html, "html.parser")
 
         # Strategy 1: Extract from GTM JSON embedded in turbo-frame
         listings = self._parse_gtm_data(soup, query)
         if listings:
-            # Enrich with image URLs from HTML cards
+            # Enrich with image URLs and per-product links from HTML cards
             self._enrich_with_html(soup, listings)
             return {
-                "market_listings": listings[:settings.max_results_per_source],
+                "market_listings": listings[: settings.max_results_per_source],
                 "salvage_hits": [],
                 "external_links": [],
                 "error": None,
@@ -62,7 +71,7 @@ class FCPEuroConnector(BaseConnector):
         # Strategy 2: Parse HTML .hit cards directly
         listings = self._parse_hit_cards(soup, query)
         return {
-            "market_listings": listings[:settings.max_results_per_source],
+            "market_listings": listings[: settings.max_results_per_source],
             "salvage_hits": [],
             "external_links": [],
             "error": None,
@@ -98,15 +107,17 @@ class FCPEuroConnector(BaseConnector):
             if item_id and item_id not in part_numbers:
                 part_numbers.append(item_id)
 
-            listings.append(MarketListing(
-                source="fcpeuro",
-                title=title,
-                price=price,
-                condition="New",
-                url=f"https://www.fcpeuro.com/products?keywords={quote_plus(query)}",
-                part_numbers=part_numbers,
-                brand=brand or None,
-            ))
+            listings.append(
+                MarketListing(
+                    source="fcpeuro",
+                    title=title,
+                    price=price,
+                    condition="New",
+                    url=f"https://www.fcpeuro.com/products?keywords={quote_plus(query)}",
+                    part_numbers=part_numbers,
+                    brand=brand or None,
+                )
+            )
 
         return listings
 
@@ -168,20 +179,22 @@ class FCPEuroConnector(BaseConnector):
             if not title:
                 continue
 
-            listings.append(MarketListing(
-                source="fcpeuro",
-                title=title,
-                price=price,
-                condition="New",
-                url=product_url or f"https://www.fcpeuro.com/products?keywords={quote_plus(query)}",
-                part_numbers=extract_part_numbers(title),
-                brand=brand,
-                image_url=image_url,
-            ))
+            listings.append(
+                MarketListing(
+                    source="fcpeuro",
+                    title=title,
+                    price=price,
+                    condition="New",
+                    url=product_url or f"https://www.fcpeuro.com/products?keywords={quote_plus(query)}",
+                    part_numbers=extract_part_numbers(title),
+                    brand=brand,
+                    image_url=image_url,
+                )
+            )
 
         return listings
 
-    def _generate_links(self, query: str, kwargs: dict = None) -> Dict[str, Any]:
+    def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate FCP Euro search links (fallback)."""
         encoded = quote_plus(query)
         links = [
@@ -196,12 +209,14 @@ class FCPEuroConnector(BaseConnector):
         part_numbers = (kwargs or {}).get("part_numbers") or extract_part_numbers(query)
         for pn in part_numbers:
             encoded_pn = quote_plus(pn)
-            links.append(ExternalLink(
-                label=f"FCP Euro: {pn}",
-                url=f"https://www.fcpeuro.com/products?keywords={encoded_pn}",
-                source="fcpeuro",
-                category="new_parts",
-            ))
+            links.append(
+                ExternalLink(
+                    label=f"FCP Euro: {pn}",
+                    url=f"https://www.fcpeuro.com/products?keywords={encoded_pn}",
+                    source="fcpeuro",
+                    category="new_parts",
+                )
+            )
 
         return {
             "market_listings": [],

@@ -8,7 +8,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import search, sources
+from app.api.routes.history import router as history_router
 from app.config import settings
+from app.db import close_db, get_db
 
 # Configure logging
 logging.basicConfig(
@@ -33,6 +35,7 @@ app.add_middleware(
 # Include routers
 app.include_router(search.router)
 app.include_router(sources.router)
+app.include_router(history_router)
 
 
 @app.get("/")
@@ -45,6 +48,8 @@ async def root():
             "search": "/search?query=...",
             "sources": "/sources",
             "sources_stats": "/sources/stats",
+            "history": "/history/searches",
+            "price_history": "/history/prices",
             "docs": "/docs",
         },
     }
@@ -58,20 +63,26 @@ async def health():
 
 @app.on_event("startup")
 async def startup():
-    """Startup event - initialize Redis connection."""
+    """Startup event - initialize connections."""
     logger.info("Starting PartLogic API...")
     try:
-        # Initialize Redis connection
         await search.get_redis_client()
         logger.info("Redis connection initialized")
     except Exception as e:
         logger.warning(f"Redis connection failed (caching disabled): {e}")
 
+    try:
+        await get_db()
+        logger.info("SQLite database initialized")
+    except Exception as e:
+        logger.warning(f"SQLite initialization failed: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
-    """Shutdown event - close Redis connection."""
+    """Shutdown event - close connections."""
     logger.info("Shutting down PartLogic API...")
     if search.redis_client:
         await search.redis_client.close()
         logger.info("Redis connection closed")
+    await close_db()

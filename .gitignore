@@ -3,15 +3,25 @@ backend/venv/
 backend/venv312/
 backend/.env
 backend/__pycache__/
+**/__pycache__/
 
 # Frontend
 frontend/node_modules/
 frontend/.next/
 frontend/.env*.local
 
+# Database (SQLite runtime files)
+backend/data/partlogic.db
+backend/data/partlogic.db-shm
+backend/data/partlogic.db-wal
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+
 # IDE
 .vscode/
 .idea/
+.cursor/
 *.swp
 
 # OS

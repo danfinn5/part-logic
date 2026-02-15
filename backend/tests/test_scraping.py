@@ -1,6 +1,6 @@
 """Tests for shared scraping utilities."""
-import pytest
-from app.utils.scraping import parse_price, get_random_ua, default_headers
+
+from app.utils.scraping import default_headers, get_random_ua, parse_price
 
 
 class TestParsePrice:
@@ -42,10 +42,10 @@ class TestGetRandomUA:
         assert "Mozilla" in ua
 
     def test_returns_from_pool(self):
-        # Should always return a valid Chrome UA
+        # Should always return a valid browser UA (Chrome, Safari, or Firefox)
         for _ in range(20):
             ua = get_random_ua()
-            assert "Chrome" in ua
+            assert any(browser in ua for browser in ("Chrome", "Safari", "Firefox"))
 
 
 class TestDefaultHeaders:
