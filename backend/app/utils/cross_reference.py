@@ -35,6 +35,22 @@ _KNOWN_BRANDS = {
 _BRAND_STRIP = _KNOWN_BRANDS | {"NEW", "OE", "REPLACEMENT", "PREMIUM", "HD",
                                   "HEAVY DUTY", "PERFORMANCE", "STOCK"}
 
+# Part-type words that indicate we've passed the model and into the part description
+_PART_TYPE_WORDS = {
+    "ENGINE", "MOUNT", "MOUNTS", "MOTOR", "BRAKE", "BRAKES", "PAD", "PADS",
+    "ROTOR", "ROTORS", "CALIPER", "CLUTCH", "TRANSMISSION", "SUSPENSION",
+    "STRUT", "STRUTS", "SHOCK", "SHOCKS", "SPRING", "SPRINGS", "FILTER",
+    "OIL", "AIR", "FUEL", "PUMP", "WATER", "ALTERNATOR", "STARTER",
+    "BELT", "BELTS", "HOSE", "HOSES", "GASKET", "GASKETS", "SEAL", "SEALS",
+    "BEARING", "BEARINGS", "BUSHING", "BUSHINGS", "SENSOR", "SWITCH",
+    "VALVE", "THERMOSTAT", "RADIATOR", "CONDENSER", "EXHAUST", "MUFFLER",
+    "MANIFOLD", "CONTROL", "ARM", "ARMS", "ASSEMBLY", "KIT",
+    "HEADLIGHT", "TAILLIGHT", "MIRROR", "WIPER", "WIPERS",
+    "WHEEL", "AXLE", "DRIVESHAFT", "DOOR", "WINDOW", "FENDER", "BUMPER",
+    "HOOD", "TRUNK", "LATCH", "TIMING", "STEERING", "IGNITION", "SPARK",
+    "PLUG", "PLUGS", "CATALYTIC", "CONVERTER", "SWAY", "BAR", "LINK",
+}
+
 # Vehicle make names for extracting vehicle context from titles
 _VEHICLE_MAKES = {
     "ACURA", "AUDI", "BMW", "CHEVROLET", "CHRYSLER", "DODGE", "FERRARI",
@@ -66,8 +82,8 @@ def _extract_vehicle_from_title(title: str) -> Optional[str]:
             # Stop at common delimiters
             if word in ("-", "|", "/", "FOR", "WITH", "AND", "OR"):
                 break
-            # Stop at part-type words
-            if word in _BRAND_STRIP:
+            # Stop at brand or part-type words
+            if word in _BRAND_STRIP or word in _PART_TYPE_WORDS:
                 break
             model_words.append(word)
         model = " ".join(model_words)
