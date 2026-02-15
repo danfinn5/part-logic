@@ -1,26 +1,25 @@
 """
 PartLogic FastAPI application entry point.
 """
+
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
+
+from app.api.routes import search, sources
 from app.config import settings
-from app.api.routes import search
 
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 logger = logging.getLogger(__name__)
 
 # Create FastAPI app
-app = FastAPI(
-    title=settings.api_title,
-    version=settings.api_version,
-    debug=settings.debug
-)
+app = FastAPI(title=settings.api_title, version=settings.api_version, debug=settings.debug)
 
 # CORS middleware for frontend access
 app.add_middleware(
@@ -33,6 +32,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(search.router)
+app.include_router(sources.router)
 
 
 @app.get("/")
@@ -43,8 +43,10 @@ async def root():
         "version": settings.api_version,
         "endpoints": {
             "search": "/search?query=...",
-            "docs": "/docs"
-        }
+            "sources": "/sources",
+            "sources_stats": "/sources/stats",
+            "docs": "/docs",
+        },
     }
 
 
