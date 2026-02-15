@@ -1,5 +1,5 @@
 """
-AI-powered parts advisor using Anthropic Claude.
+AI-powered parts advisor — supports OpenAI and Anthropic.
 
 Takes a search query and returns structured product recommendations:
 - Vehicle identification
@@ -7,6 +7,9 @@ Takes a search query and returns structured product recommendations:
 - Recommended brands ranked by quality/value
 - Buy links generated with correct part numbers
 - Consumable/salvage-appropriate classification
+
+Provider priority: OpenAI (cheaper) > Anthropic > disabled.
+Configure via OPENAI_API_KEY or ANTHROPIC_API_KEY in .env.
 """
 
 import json
@@ -194,24 +197,96 @@ def _generate_buy_links(part_number: str, retailers: list[str]) -> list[dict]:
     return links
 
 
+# ── Provider selection ───────────────────────────────────────────────────
+
+
+def _get_provider() -> str | None:
+    """
+    Determine which AI provider to use.
+
+    Priority: OpenAI (cheapest) > Anthropic > None.
+    """
+    if settings.openai_api_key:
+        return "openai"
+    if settings.anthropic_api_key:
+        return "anthropic"
+    return None
+
+
 async def get_ai_recommendations(query: str) -> AIAdvisorResult:
     """
     Call the AI advisor to analyze a parts search query.
 
+    Automatically selects the best available provider.
     Returns structured recommendations even if no API key is configured
     (falls back to empty result with error message).
     """
-    if not settings.anthropic_api_key:
-        return AIAdvisorResult(error="No AI API key configured. Set ANTHROPIC_API_KEY in .env")
-
     if not settings.ai_synthesis_enabled:
         return AIAdvisorResult(error="AI synthesis is disabled")
 
+    provider = _get_provider()
+    if not provider:
+        return AIAdvisorResult(error="No AI API key configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env")
+
     try:
-        return await _call_anthropic(query)
+        if provider == "openai":
+            return await _call_openai(query)
+        else:
+            return await _call_anthropic(query)
     except Exception as e:
-        logger.error(f"AI advisor failed: {e}")
+        logger.error(f"AI advisor ({provider}) failed: {e}")
         return AIAdvisorResult(error=str(e))
+
+
+# ── OpenAI provider ─────────────────────────────────────────────────────
+
+
+async def _call_openai(query: str) -> AIAdvisorResult:
+    """Call OpenAI Chat Completions API and parse the structured response."""
+    model = settings.openai_model
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.openai_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "temperature": 0.3,
+                "max_tokens": 2000,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": f'Analyze this auto parts search query and provide recommendations: "{query}"',
+                    },
+                ],
+            },
+        )
+
+    if response.status_code != 200:
+        error_text = response.text[:500]
+        logger.error(f"OpenAI API error {response.status_code}: {error_text}")
+        return AIAdvisorResult(error=f"AI API error: HTTP {response.status_code}")
+
+    data = response.json()
+    choices = data.get("choices", [])
+    if not choices:
+        return AIAdvisorResult(error="Empty AI response")
+
+    text = choices[0].get("message", {}).get("content", "")
+    usage = data.get("usage", {})
+    logger.info(
+        f"OpenAI ({model}): {usage.get('prompt_tokens', '?')} prompt + "
+        f"{usage.get('completion_tokens', '?')} completion tokens"
+    )
+    return _parse_ai_response(text)
+
+
+# ── Anthropic provider ──────────────────────────────────────────────────
 
 
 async def _call_anthropic(query: str) -> AIAdvisorResult:
@@ -248,7 +323,15 @@ async def _call_anthropic(query: str) -> AIAdvisorResult:
         return AIAdvisorResult(error="Empty AI response")
 
     text = content[0].get("text", "")
+    usage = data.get("usage", {})
+    logger.info(
+        f"Anthropic (claude-sonnet-4): {usage.get('input_tokens', '?')} input + "
+        f"{usage.get('output_tokens', '?')} output tokens"
+    )
     return _parse_ai_response(text)
+
+
+# ── Response parsing (shared) ───────────────────────────────────────────
 
 
 def _parse_ai_response(text: str) -> AIAdvisorResult:

@@ -51,10 +51,15 @@ class Settings(BaseSettings):
     reddit_client_id: str | None = None
     reddit_client_secret: str | None = None
     reddit_user_agent: str = "PartLogic/1.0"
-    anthropic_api_key: str | None = None
     community_enabled: bool = True
     ai_synthesis_enabled: bool = True
     community_cache_ttl: int = 604800  # 7 days
+
+    # AI Provider Configuration
+    # Priority: OpenAI (cheapest) > Anthropic. Set whichever key you have.
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"  # Cheap and good for structured JSON
+    anthropic_api_key: str | None = None
 
 
 # Global settings instance
