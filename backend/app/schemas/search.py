@@ -56,6 +56,15 @@ class SearchResults(BaseModel):
     external_links: List[ExternalLink] = Field(default_factory=list)
 
 
+class PartIntelligence(BaseModel):
+    """Cross-reference and query analysis data."""
+    query_type: str = "keywords"  # "part_number", "vehicle_part", "keywords"
+    vehicle_hint: Optional[str] = None
+    part_description: Optional[str] = None
+    cross_references: List[str] = Field(default_factory=list)
+    brands_found: List[str] = Field(default_factory=list)
+
+
 class SearchResponse(BaseModel):
     """Response from /search endpoint."""
     query: str
@@ -64,3 +73,4 @@ class SearchResponse(BaseModel):
     sources_queried: List[SourceStatus] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     cached: bool = False
+    intelligence: Optional[PartIntelligence] = None

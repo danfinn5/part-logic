@@ -1,8 +1,8 @@
 """
 Partsouq OEM parts connector.
 
-Scrapes OEM part listings from Partsouq.com.
-Falls back to link generation on failure.
+Uses Playwright to bypass Cloudflare protection and scrape OEM part listings.
+Falls back to link generation when Playwright is unavailable or scraping fails.
 """
 import logging
 from typing import Dict, Any
@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from app.ingestion.base import BaseConnector
 from app.schemas.search import MarketListing, ExternalLink
 from app.config import settings
-from app.utils.scraping import fetch_html, parse_price
+from app.utils.scraping import parse_price
 from app.utils.normalization import clean_url
 from app.utils.part_numbers import extract_part_numbers
 
@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class PartsouqConnector(BaseConnector):
-    """Partsouq OEM parts diagram scraper."""
+    """Partsouq OEM parts Playwright-based scraper (Cloudflare-protected)."""
 
     def __init__(self):
         super().__init__("partsouq")
 
     async def search(self, query: str, **kwargs) -> Dict[str, Any]:
-        """Search Partsouq. Scrapes results when enabled, otherwise generates links."""
-        if not settings.scrape_enabled:
+        """Search Partsouq. Uses Playwright to bypass Cloudflare."""
+        if not settings.scrape_enabled or not settings.playwright_enabled:
             return self._generate_links(query, kwargs)
 
         try:
@@ -38,15 +38,28 @@ class PartsouqConnector(BaseConnector):
             return self._generate_links(query, kwargs)
 
     async def _scrape(self, query: str, **kwargs) -> Dict[str, Any]:
-        """Fetch and parse Partsouq search results."""
+        """Use Playwright to fetch and parse Partsouq search results."""
+        from app.utils.browser import get_page
+
         encoded = quote_plus(query)
         url = f"https://partsouq.com/en/search/all?q={encoded}"
-        html, _ = await fetch_html(url)
-        soup = BeautifulSoup(html, "html.parser")
 
+        async with get_page() as page:
+            await page.goto(url, wait_until="networkidle")
+            try:
+                await page.wait_for_selector(
+                    "[class*='part'], [class*='product'], [class*='search-result']",
+                    timeout=10000,
+                )
+            except Exception:
+                pass
+
+            html = await page.content()
+
+        soup = BeautifulSoup(html, "html.parser")
         listings = []
 
-        # Partsouq shows part results in a list/card format
+        # Look for part items
         products = soup.select(
             ".part-item, .search-result-item, .product-item, "
             "[class*='part-item'], [class*='search-result'], "
@@ -68,7 +81,7 @@ class PartsouqConnector(BaseConnector):
             )
             part_num = pn_el.get_text(strip=True) if pn_el else ""
 
-            # Price (may not always be available on Partsouq)
+            # Price
             price_el = product.select_one(
                 ".price, .product-price, [class*='price']"
             )
@@ -81,8 +94,8 @@ class PartsouqConnector(BaseConnector):
                 href = link_tag.get("href", "")
                 if href.startswith("/"):
                     product_url = f"https://partsouq.com{href}"
-                else:
-                    product_url = clean_url(href)
+                elif href.startswith("http"):
+                    product_url = href
 
             # Image
             img_tag = product.select_one("img[src], img[data-src]")
@@ -91,6 +104,8 @@ class PartsouqConnector(BaseConnector):
                 image_url = img_tag.get("data-src") or img_tag.get("src", "")
                 if image_url and not image_url.startswith("http"):
                     image_url = f"https://partsouq.com{image_url}"
+                if image_url and image_url.startswith("data:"):
+                    image_url = None
 
             if not title and not part_num:
                 continue

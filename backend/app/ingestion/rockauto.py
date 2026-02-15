@@ -4,6 +4,7 @@ RockAuto connector.
 Uses Playwright to scrape JS-rendered search results from RockAuto.
 Falls back to link generation when Playwright is unavailable or scraping fails.
 """
+import re
 import logging
 from typing import Dict, Any
 from urllib.parse import quote_plus
@@ -12,7 +13,6 @@ from app.ingestion.base import BaseConnector
 from app.schemas.search import MarketListing, ExternalLink
 from app.config import settings
 from app.utils.scraping import parse_price
-from app.utils.normalization import clean_url
 from app.utils.part_numbers import extract_part_numbers
 
 logger = logging.getLogger(__name__)
@@ -46,95 +46,82 @@ class RockAutoConnector(BaseConnector):
 
         async with get_page() as page:
             await page.goto(url, wait_until="networkidle")
-            # Wait for product listings to render
             try:
                 await page.wait_for_selector(
-                    "[class*='listing'], [class*='part'], .ra-listing-text, table.nobmar",
+                    ".listing-inner, .listings-container",
                     timeout=8000,
                 )
             except Exception:
-                pass  # Continue with whatever loaded
+                pass
 
             html = await page.content()
 
         soup = BeautifulSoup(html, "html.parser")
         listings = []
 
-        # RockAuto uses table-based layouts with specific CSS classes
-        parts = soup.select(
-            "tr[class*='ra-listing'], .ra-listing-text, "
-            "[class*='listing-text'], [class*='napa'], "
-            "tr.ra-border-bottom, td.listing-text"
-        )
-
-        if not parts:
-            # Broader fallback: look for any product-like rows
-            parts = soup.select("tr")
+        # RockAuto real structure: each part is a <tbody class="listing-inner">
+        parts = soup.select("tbody.listing-inner")
 
         for part in parts:
-            # Title / part description
-            title_el = part.select_one(
-                ".listing-text-row-title, .ra-listing-text, "
-                "[class*='listing-text'], span.ra-listing-text, "
-                "a[class*='listing']"
-            )
-            if not title_el:
-                # Try text within td cells
-                tds = part.find_all("td")
-                title_text_parts = []
-                for td in tds:
-                    text = td.get_text(strip=True)
-                    if text and len(text) > 5 and not text.startswith("$"):
-                        title_text_parts.append(text)
-                title = " ".join(title_text_parts[:2]) if title_text_parts else ""
-            else:
-                title = title_el.get_text(strip=True)
-
-            # Price
-            price_el = part.select_one(
-                "[class*='price'], .ra-price, .listing-price, "
-                "span.ra-price-display"
-            )
-            price = parse_price(price_el.get_text(strip=True)) if price_el else 0.0
-
-            # URL
-            link_tag = part.select_one("a[href]")
-            product_url = ""
-            if link_tag:
-                href = link_tag.get("href", "")
-                if href.startswith("/"):
-                    product_url = f"https://www.rockauto.com{href}"
-                elif href.startswith("http"):
-                    product_url = href
-
-            # Image
-            img_tag = part.select_one("img[src]")
-            image_url = None
-            if img_tag:
-                src = img_tag.get("src", "")
-                if src and not src.startswith("data:"):
-                    if src.startswith("/"):
-                        image_url = f"https://www.rockauto.com{src}"
-                    elif src.startswith("http"):
-                        image_url = src
-
-            # Brand (often in a separate cell or span)
-            brand_el = part.select_one(
-                "[class*='brand'], .listing-brand, .ra-brand"
-            )
+            # Brand: <span class="listing-final-manufacturer">
+            brand_el = part.select_one("span.listing-final-manufacturer")
             brand = brand_el.get_text(strip=True) if brand_el else None
 
+            # Part number: <span class="listing-final-partnumber">
+            pn_el = part.select_one("span.listing-final-partnumber")
+            part_num = pn_el.get_text(strip=True) if pn_el else ""
+
+            # Description text from listing-text-row-moreinfo or listing-text-row
+            desc_el = part.select_one(".listing-text-row-moreinfo-truck, .listing-text-row-moreinfo")
+            if desc_el:
+                # Get just the direct text, not nested elements like "Info" button
+                desc_parts = []
+                if brand:
+                    desc_parts.append(brand)
+                if part_num:
+                    desc_parts.append(part_num)
+                # Get the description after manufacturer/partnumber
+                footnote = part.select_one("span.listing-footnote-text")
+                if footnote:
+                    desc_parts.append(footnote.get_text(strip=True))
+                title = " ".join(desc_parts) if desc_parts else ""
+            else:
+                title = f"{brand or ''} {part_num or ''}".strip()
+
+            # Also grab the full text after brand+PN for more detail
+            more_el = part.select_one(".listing-text-row-moreinfo-truck")
+            if more_el and not title:
+                raw = more_el.get_text(strip=True)
+                # Remove "Info" button text
+                title = raw.replace("Info", "").strip()
+
+            # Price: <span class="listing-price listing-amount-bold">
+            price_el = part.select_one("span.listing-price")
+            price = parse_price(price_el.get_text(strip=True)) if price_el else 0.0
+
+            # Image
+            img_el = part.select_one(".listing-inline-image-popup-widget-title")
+            image_url = None
+            img_tag = part.select_one("img[src]")
+            if img_tag:
+                src = img_tag.get("src", "")
+                if src and src.startswith("http") and not src.startswith("data:"):
+                    image_url = src
+
+            # Skip rows without meaningful content
             if not title or len(title) < 3:
                 continue
+            if not part_num and not brand:
+                continue
 
-            part_numbers = extract_part_numbers(title)
+            part_numbers = [part_num] if part_num else extract_part_numbers(title)
 
             listings.append(MarketListing(
                 source="rockauto",
                 title=title,
                 price=price,
                 condition="New",
-                url=product_url or url,
+                url=url,
                 part_numbers=part_numbers,
                 brand=brand,
                 image_url=image_url,

@@ -1,9 +1,12 @@
 """
 FCP Euro connector.
 
-Tries FCP Euro's internal search API first, then falls back to
-HTML scraping, then to link generation.
+Parses FCP Euro search results from server-rendered HTML.
+FCP Euro embeds structured product data in GTM event attributes
+and uses .hit cards for product display.
+Falls back to link generation on failure.
 """
+import json
 import logging
 from typing import Dict, Any
 from urllib.parse import quote_plus
@@ -11,7 +14,7 @@ from bs4 import BeautifulSoup
 from app.ingestion.base import BaseConnector
 from app.schemas.search import MarketListing, ExternalLink
 from app.config import settings
-from app.utils.scraping import fetch_html, fetch_json, parse_price
+from app.utils.scraping import fetch_html, parse_price
 from app.utils.normalization import clean_url
 from app.utils.part_numbers import extract_part_numbers
 
@@ -38,142 +41,145 @@ class FCPEuroConnector(BaseConnector):
             return self._generate_links(query, kwargs)
 
     async def _scrape(self, query: str, **kwargs) -> Dict[str, Any]:
-        """Try API first, then HTML parsing."""
-        try:
-            return await self._scrape_api(query)
-        except Exception as e:
-            logger.debug(f"FCP Euro API attempt failed: {e}, trying HTML")
-
-        return await self._scrape_html(query)
-
-    async def _scrape_api(self, query: str) -> Dict[str, Any]:
-        """Try FCP Euro's internal search API."""
+        """Fetch and parse FCP Euro search results."""
         encoded = quote_plus(query)
-        api_url = f"https://www.fcpeuro.com/api/search?query={encoded}"
-        data, _ = await fetch_json(api_url, headers={
-            "X-Requested-With": "XMLHttpRequest",
-            "Referer": "https://www.fcpeuro.com/",
-        })
+        url = f"https://www.fcpeuro.com/products?keywords={encoded}"
+        html, _ = await fetch_html(url)
+        soup = BeautifulSoup(html, "html.parser")
 
+        # Strategy 1: Extract from GTM JSON embedded in turbo-frame
+        listings = self._parse_gtm_data(soup, query)
+        if listings:
+            # Enrich with image URLs from HTML cards
+            self._enrich_with_html(soup, listings)
+            return {
+                "market_listings": listings[:settings.max_results_per_source],
+                "salvage_hits": [],
+                "external_links": [],
+                "error": None,
+            }
+
+        # Strategy 2: Parse HTML .hit cards directly
+        listings = self._parse_hit_cards(soup, query)
+        return {
+            "market_listings": listings[:settings.max_results_per_source],
+            "salvage_hits": [],
+            "external_links": [],
+            "error": None,
+        }
+
+    def _parse_gtm_data(self, soup: BeautifulSoup, query: str) -> list:
+        """Extract product data from GTM event JSON in turbo-frame."""
         listings = []
-        products = data.get("products", data.get("items", data.get("results", [])))
-        for product in products:
-            title = product.get("name", product.get("title", ""))
-            price = parse_price(str(product.get("price", product.get("salePrice", "0"))))
-            url = product.get("url", product.get("link", ""))
-            image = product.get("image", product.get("imageUrl", product.get("thumbnail", "")))
-            brand = product.get("brand", product.get("manufacturer", ""))
-            part_num = product.get("partNumber", product.get("sku", ""))
+        frame = soup.select_one("turbo-frame#product-results")
+        if not frame:
+            return listings
+
+        gtm_raw = frame.get("data-gtm-event-event-value", "")
+        if not gtm_raw:
+            return listings
+
+        try:
+            data = json.loads(gtm_raw)
+        except (json.JSONDecodeError, TypeError):
+            return listings
+
+        items = data.get("ecommerce", {}).get("items", [])
+        for item in items:
+            item_id = item.get("item_id", "")
+            title = item.get("item_name", "")
+            brand = item.get("item_brand", "")
+            price = float(item.get("price", "0") or "0")
 
             if not title:
                 continue
 
-            part_numbers = [part_num] if part_num else extract_part_numbers(title)
-
-            if url and not url.startswith("http"):
-                url = f"https://www.fcpeuro.com{url}"
+            part_numbers = extract_part_numbers(title)
+            if item_id and item_id not in part_numbers:
+                part_numbers.append(item_id)
 
             listings.append(MarketListing(
                 source="fcpeuro",
                 title=title,
                 price=price,
                 condition="New",
-                url=clean_url(url) if url else f"https://www.fcpeuro.com/search?query={encoded}",
+                url=f"https://www.fcpeuro.com/products?keywords={quote_plus(query)}",
                 part_numbers=part_numbers,
                 brand=brand or None,
-                image_url=clean_url(image) if image else None,
             ))
 
-            if len(listings) >= settings.max_results_per_source:
+        return listings
+
+    def _enrich_with_html(self, soup: BeautifulSoup, listings: list):
+        """Add image URLs and product links from HTML .hit cards."""
+        hits = soup.select("div.hit, .grid-x.hit")
+        for i, hit in enumerate(hits):
+            if i >= len(listings):
                 break
 
-        return {
-            "market_listings": listings,
-            "salvage_hits": [],
-            "external_links": [],
-            "error": None,
-        }
+            # Image
+            img_tag = hit.select_one("img[src]")
+            if img_tag:
+                src = img_tag.get("src", "")
+                if src and src.startswith("http"):
+                    listings[i].image_url = src
 
-    async def _scrape_html(self, query: str) -> Dict[str, Any]:
-        """Parse FCP Euro HTML search results."""
-        encoded = quote_plus(query)
-        url = f"https://www.fcpeuro.com/search?query={encoded}"
-        html, _ = await fetch_html(url)
-        soup = BeautifulSoup(html, "html.parser")
+            # Product URL
+            link_tag = hit.select_one("a.hit__name[href]")
+            if link_tag:
+                href = link_tag.get("href", "")
+                if href.startswith("/"):
+                    listings[i].url = f"https://www.fcpeuro.com{href}"
 
+    def _parse_hit_cards(self, soup: BeautifulSoup, query: str) -> list:
+        """Parse FCP Euro .hit cards when GTM data unavailable."""
         listings = []
+        hits = soup.select("div.hit, .grid-x.hit")
 
-        products = soup.select(
-            ".product-card, .search-result, .product-item, "
-            "[class*='product-card'], [class*='productCard'], "
-            "[data-product-id], .grid-item"
-        )
-
-        for product in products:
+        for hit in hits:
             # Title
-            title_el = product.select_one(
-                ".product-name, .product-title, h3, h4, "
-                "[class*='title'], [class*='name'] a"
-            )
-            title = title_el.get_text(strip=True) if title_el else ""
+            name_el = hit.select_one(".hit__name")
+            title = name_el.get_text(strip=True) if name_el else ""
 
-            # Price
-            price_el = product.select_one(
-                ".price, .product-price, [class*='price'], .sale-price"
-            )
+            # Price: in .hit__money
+            price_el = hit.select_one(".hit__money")
             price = parse_price(price_el.get_text(strip=True)) if price_el else 0.0
 
             # URL
-            link_tag = product.select_one("a[href]")
+            link_tag = hit.select_one("a.hit__name[href], a[href]")
             product_url = ""
             if link_tag:
                 href = link_tag.get("href", "")
                 if href.startswith("/"):
                     product_url = f"https://www.fcpeuro.com{href}"
-                else:
-                    product_url = clean_url(href)
 
             # Image
-            img_tag = product.select_one("img[src], img[data-src]")
+            img_tag = hit.select_one("img[src]")
             image_url = None
             if img_tag:
-                image_url = img_tag.get("data-src") or img_tag.get("src", "")
-                if image_url and not image_url.startswith("http"):
-                    image_url = f"https://www.fcpeuro.com{image_url}"
+                src = img_tag.get("src", "")
+                if src and src.startswith("http"):
+                    image_url = src
 
-            # Brand
-            brand_el = product.select_one(".brand, .manufacturer, [class*='brand']")
-            brand = brand_el.get_text(strip=True) if brand_el else None
-
-            # Part number
-            pn_el = product.select_one(".part-number, .sku, [class*='partNumber'], [class*='sku']")
-            part_num = pn_el.get_text(strip=True) if pn_el else ""
+            # Brand from .hit__flag (e.g., "OE")
+            flag_el = hit.select_one(".hit__flag")
+            brand = flag_el.get_text(strip=True) if flag_el else None
 
             if not title:
                 continue
-
-            part_numbers = [part_num] if part_num else extract_part_numbers(title)
 
             listings.append(MarketListing(
                 source="fcpeuro",
                 title=title,
                 price=price,
                 condition="New",
-                url=product_url or url,
-                part_numbers=part_numbers,
+                url=product_url or f"https://www.fcpeuro.com/products?keywords={quote_plus(query)}",
+                part_numbers=extract_part_numbers(title),
                 brand=brand,
                 image_url=image_url,
             ))
 
-            if len(listings) >= settings.max_results_per_source:
-                break
-
-        return {
-            "market_listings": listings,
-            "salvage_hits": [],
-            "external_links": [],
-            "error": None,
-        }
+        return listings
 
     def _generate_links(self, query: str, kwargs: dict = None) -> Dict[str, Any]:
         """Generate FCP Euro search links (fallback)."""
@@ -181,7 +187,7 @@ class FCPEuroConnector(BaseConnector):
         links = [
             ExternalLink(
                 label=f"Search FCP Euro for '{query}'",
-                url=f"https://www.fcpeuro.com/search?query={encoded}",
+                url=f"https://www.fcpeuro.com/products?keywords={encoded}",
                 source="fcpeuro",
                 category="new_parts",
             )
@@ -192,7 +198,7 @@ class FCPEuroConnector(BaseConnector):
             encoded_pn = quote_plus(pn)
             links.append(ExternalLink(
                 label=f"FCP Euro: {pn}",
-                url=f"https://www.fcpeuro.com/search?query={encoded_pn}",
+                url=f"https://www.fcpeuro.com/products?keywords={encoded_pn}",
                 source="fcpeuro",
                 category="new_parts",
             ))
@@ -209,7 +215,7 @@ class FCPEuroConnector(BaseConnector):
         encoded = quote_plus(query)
         return ExternalLink(
             label="See all results on FCP Euro",
-            url=f"https://www.fcpeuro.com/search?query={encoded}",
+            url=f"https://www.fcpeuro.com/products?keywords={encoded}",
             source="fcpeuro",
             category="new_parts",
         )
