@@ -116,3 +116,61 @@ export interface SearchResponse {
 export type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'value';
 
 export type ViewMode = 'comparison' | 'list';
+
+/* ── Price Tracking Types ────────────────────────────────────────── */
+
+export interface SearchHistoryEntry {
+  id: number;
+  query: string;
+  normalized_query: string;
+  query_type: string | null;
+  vehicle_hint: string | null;
+  part_description: string | null;
+  sort: string;
+  market_listing_count: number;
+  salvage_hit_count: number;
+  external_link_count: number;
+  source_count: number;
+  has_interchange: number;
+  cached: number;
+  response_time_ms: number | null;
+  created_at: string;
+}
+
+export interface PriceSnapshot {
+  id: number;
+  query: string;
+  source: string;
+  part_number: string | null;
+  brand: string | null;
+  title: string;
+  price: number;
+  shipping_cost: number;
+  condition: string | null;
+  url: string | null;
+  created_at: string;
+}
+
+export interface PriceTrend {
+  date: string;
+  source: string;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  observations: number;
+}
+
+export interface SearchStats {
+  total_searches: number;
+  unique_queries: number;
+  avg_listings_per_search: number;
+  avg_response_ms: number;
+  by_query_type: { query_type: string; count: number }[];
+}
+
+export interface PopularSearch {
+  normalized_query: string;
+  count: number;
+  avg_listings: number;
+  last_searched: string;
+}
