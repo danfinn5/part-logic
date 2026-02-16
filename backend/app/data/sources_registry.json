@@ -1,0 +1,1731 @@
+[
+  {
+    "id": "59347ee8-2c3d-4751-94d9-4376b7da3236",
+    "domain": "digikey.com",
+    "name": "Digi-Key",
+    "category": "electronics",
+    "tags": [
+      "connectors",
+      "electronics",
+      "sensors"
+    ],
+    "notes": "Automotive electronics crossover",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 25,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.893828+00:00",
+    "updated_at": "2026-02-15T17:15:40.893828+00:00"
+  },
+  {
+    "id": "fca6b7c8-3158-4b41-873a-261426757ada",
+    "domain": "mouser.com",
+    "name": "Mouser",
+    "category": "electronics",
+    "tags": [
+      "connectors",
+      "electronics",
+      "sensors"
+    ],
+    "notes": "Automotive electronics crossover",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 25,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.899568+00:00",
+    "updated_at": "2026-02-15T17:15:40.899568+00:00"
+  },
+  {
+    "id": "02170f72-837f-429a-8222-3f182b2cf038",
+    "domain": "applied.com",
+    "name": "Applied Industrial",
+    "category": "industrial",
+    "tags": [
+      "bearings",
+      "power_transmission"
+    ],
+    "notes": "Industrial bearings",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 30,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.877772+00:00",
+    "updated_at": "2026-02-15T17:15:40.877772+00:00"
+  },
+  {
+    "id": "65c9fb15-8f6f-434e-a8d8-6fb718a25cec",
+    "domain": "fastenal.com",
+    "name": "Fastenal",
+    "category": "industrial",
+    "tags": [
+      "fasteners",
+      "hardware"
+    ],
+    "notes": "Industrial hardware",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 30,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.866764+00:00",
+    "updated_at": "2026-02-15T17:15:40.866764+00:00"
+  },
+  {
+    "id": "fc5c3a72-dca6-4b1b-a125-0ee4d60222f3",
+    "domain": "grainger.com",
+    "name": "Grainger",
+    "category": "industrial",
+    "tags": [
+      "consumables",
+      "mro",
+      "tools"
+    ],
+    "notes": "Industrial MRO",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 30,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.860004+00:00",
+    "updated_at": "2026-02-15T17:15:40.860004+00:00"
+  },
+  {
+    "id": "36c9c26f-a850-43a8-9eef-38d40d1428ab",
+    "domain": "mcmaster.com",
+    "name": "McMaster-Carr",
+    "category": "industrial",
+    "tags": [
+      "bearings",
+      "fasteners",
+      "materials",
+      "seals"
+    ],
+    "notes": "Industrial crossover",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 30,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.855676+00:00",
+    "updated_at": "2026-02-15T17:15:40.855676+00:00"
+  },
+  {
+    "id": "908676e4-bb7d-49bd-9b92-e3a8daec0165",
+    "domain": "misumiusa.com",
+    "name": "Misumi",
+    "category": "industrial",
+    "tags": [
+      "bearings",
+      "hardware",
+      "linear"
+    ],
+    "notes": "Industrial components",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 30,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.883395+00:00",
+    "updated_at": "2026-02-15T17:15:40.883395+00:00"
+  },
+  {
+    "id": "addbf694-bc41-4efc-8603-a7b692e5a280",
+    "domain": "motion.com",
+    "name": "Motion",
+    "category": "industrial",
+    "tags": [
+      "bearings",
+      "power_transmission"
+    ],
+    "notes": "Industrial bearings",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 30,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.871917+00:00",
+    "updated_at": "2026-02-15T17:15:40.871917+00:00"
+  },
+  {
+    "id": "e7cfe9fa-06d0-4997-93df-bc52999b95b7",
+    "domain": "zoro.com",
+    "name": "Zoro",
+    "category": "industrial",
+    "tags": [
+      "mro",
+      "tools"
+    ],
+    "notes": "Industrial MRO",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 30,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.889022+00:00",
+    "updated_at": "2026-02-15T17:15:40.889022+00:00"
+  },
+  {
+    "id": "a9c08f46-1851-4aec-a1bd-2034bbf81448",
+    "domain": "amazon.com",
+    "name": "Amazon",
+    "category": "marketplace",
+    "tags": [
+      "marketplace",
+      "new_aftermarket"
+    ],
+    "notes": "Mixed quality; counterfeit risk",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 50,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.716753+00:00",
+    "updated_at": "2026-02-15T17:15:40.716753+00:00"
+  },
+  {
+    "id": "706d3545-66b1-4304-b22d-e54936b5de03",
+    "domain": "craigslist.org",
+    "name": "Craigslist",
+    "category": "marketplace",
+    "tags": [
+      "marketplace",
+      "used_local"
+    ],
+    "notes": "Messy; occasional gems",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 50,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.722721+00:00",
+    "updated_at": "2026-02-15T17:15:40.722721+00:00"
+  },
+  {
+    "id": "0cb38f71-40e0-4022-95e1-961ea714dc67",
+    "domain": "ebay.com",
+    "name": "eBay",
+    "category": "marketplace",
+    "tags": [
+      "global",
+      "marketplace",
+      "new_used"
+    ],
+    "notes": "Long-tail inventory",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 50,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.718704+00:00",
+    "updated_at": "2026-02-15T17:15:40.718704+00:00"
+  },
+  {
+    "id": "868b6138-47cc-4613-b55c-f5cc200eedf3",
+    "domain": "facebook.com/marketplace",
+    "name": "Facebook Marketplace",
+    "category": "marketplace",
+    "tags": [
+      "marketplace",
+      "used_local"
+    ],
+    "notes": "Messy but huge",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 50,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.721092+00:00",
+    "updated_at": "2026-02-15T17:15:40.721092+00:00"
+  },
+  {
+    "id": "d4e4d8bd-f932-4968-b100-bb98b9607f63",
+    "domain": "fordpartsgiant.com",
+    "name": "Ford Parts Giant",
+    "category": "oe_dealer",
+    "tags": [
+      "ford_oem_dealer",
+      "new_oem"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.751667+00:00",
+    "updated_at": "2026-02-15T17:15:40.751667+00:00"
+  },
+  {
+    "id": "a0ade6a5-9fce-442a-8d06-63237cfdaf65",
+    "domain": "gmpartsdirect.com",
+    "name": "GM Parts Direct",
+    "category": "oe_dealer",
+    "tags": [
+      "gm_oem_dealer",
+      "new_oem"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.744861+00:00",
+    "updated_at": "2026-02-15T17:15:40.744861+00:00"
+  },
+  {
+    "id": "be32b7a5-c6f4-4b09-8bed-bd78ddc370e9",
+    "domain": "hondapartsnow.com",
+    "name": "HondaPartsNow",
+    "category": "oe_dealer",
+    "tags": [
+      "honda_oem_dealer",
+      "new_oem"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.754639+00:00",
+    "updated_at": "2026-02-15T17:15:40.754639+00:00"
+  },
+  {
+    "id": "764e1d2f-6ff5-4846-883f-477972da6b44",
+    "domain": "lexuspartsnow.com",
+    "name": "LexusPartsNow",
+    "category": "oe_dealer",
+    "tags": [
+      "lexus_oem_dealer",
+      "new_oem"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.760514+00:00",
+    "updated_at": "2026-02-15T17:15:40.760514+00:00"
+  },
+  {
+    "id": "a279ca94-7ae2-4df7-8ad7-20f43e0cb235",
+    "domain": "moparpartsgiant.com",
+    "name": "Mopar Parts Giant",
+    "category": "oe_dealer",
+    "tags": [
+      "mopar_oem_dealer",
+      "new_oem"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.748452+00:00",
+    "updated_at": "2026-02-15T17:15:40.748452+00:00"
+  },
+  {
+    "id": "c8e3bcb2-5ab8-46dd-bed9-c590b0263d21",
+    "domain": "nissanpartsdeal.com",
+    "name": "Nissan Parts Deal",
+    "category": "oe_dealer",
+    "tags": [
+      "new_oem",
+      "nissan_oem_dealer"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.764704+00:00",
+    "updated_at": "2026-02-15T17:15:40.764704+00:00"
+  },
+  {
+    "id": "cbd3ed7b-6da3-4d37-82d9-442882ae277d",
+    "domain": "subarupartsdeal.com",
+    "name": "Subaru Parts Deal",
+    "category": "oe_dealer",
+    "tags": [
+      "new_oem",
+      "subaru_oem_dealer"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.768565+00:00",
+    "updated_at": "2026-02-15T17:15:40.768565+00:00"
+  },
+  {
+    "id": "07c8f838-874d-4457-9b1a-8c35a6085d66",
+    "domain": "suncoastparts.com",
+    "name": "Suncoast Porsche Parts",
+    "category": "oe_dealer",
+    "tags": [
+      "new_oem",
+      "porsche"
+    ],
+    "notes": "Porsche dealer",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.804260+00:00",
+    "updated_at": "2026-02-15T17:15:40.804260+00:00"
+  },
+  {
+    "id": "729dcdbe-be2d-4417-ad5b-a2a55ff00255",
+    "domain": "tascaparts.com",
+    "name": "TascaParts",
+    "category": "oe_dealer",
+    "tags": [
+      "new_oem",
+      "oem_dealer"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.742599+00:00",
+    "updated_at": "2026-02-15T17:15:40.742599+00:00"
+  },
+  {
+    "id": "a105cccd-c662-4a9f-8080-442f97b2d4a4",
+    "domain": "toyotapartsdeal.com",
+    "name": "Toyota Parts Deal",
+    "category": "oe_dealer",
+    "tags": [
+      "new_oem",
+      "toyota_oem_dealer"
+    ],
+    "notes": "Dealer storefront",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 70,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.758095+00:00",
+    "updated_at": "2026-02-15T17:15:40.758095+00:00"
+  },
+  {
+    "id": "56338c1c-165d-4cd7-813d-c69a1401b460",
+    "domain": "1aauto.com",
+    "name": "1A Auto",
+    "category": "retailer",
+    "tags": [
+      "install_content",
+      "new_aftermarket"
+    ],
+    "notes": "Strong how-to content",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.690940+00:00",
+    "updated_at": "2026-02-15T17:15:40.690940+00:00"
+  },
+  {
+    "id": "bd6e3f1e-d3c3-47c5-9d5e-f5edc3d7a6c1",
+    "domain": "advanceautoparts.com",
+    "name": "Advance Auto Parts",
+    "category": "retailer",
+    "tags": [
+      "local_pickup",
+      "new_aftermarket"
+    ],
+    "notes": "National chain",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.687860+00:00",
+    "updated_at": "2026-02-15T17:15:40.687860+00:00"
+  },
+  {
+    "id": "60167e1f-191c-4897-b1d6-f72f7da0f0a1",
+    "domain": "audis4parts.com",
+    "name": "AudiS4Parts",
+    "category": "retailer",
+    "tags": [
+      "audi",
+      "used_specialist"
+    ],
+    "notes": "VAG used specialist",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.917211+00:00",
+    "updated_at": "2026-02-15T17:15:40.917211+00:00"
+  },
+  {
+    "id": "e08f5eaf-09b8-41b1-9294-a1049f93a01c",
+    "domain": "autoanything.com",
+    "name": "AutoAnything",
+    "category": "retailer",
+    "tags": [
+      "accessories"
+    ],
+    "notes": "Accessories",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.714349+00:00",
+    "updated_at": "2026-02-15T17:15:40.714349+00:00"
+  },
+  {
+    "id": "6bfa0aa7-717c-4a4b-a860-d0d61eab83fe",
+    "domain": "autohauzaz.com",
+    "name": "AutohausAZ",
+    "category": "retailer",
+    "tags": [
+      "budget",
+      "euro",
+      "new_aftermarket"
+    ],
+    "notes": "Euro budget",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.785116+00:00",
+    "updated_at": "2026-02-15T17:15:40.785116+00:00"
+  },
+  {
+    "id": "ef0966f0-268c-49cc-be14-e75afca9ce13",
+    "domain": "autopartswarehouse.com",
+    "name": "Auto Parts Warehouse",
+    "category": "retailer",
+    "tags": [
+      "new_aftermarket"
+    ],
+    "notes": "Large catalog",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.693389+00:00",
+    "updated_at": "2026-02-15T17:15:40.693389+00:00"
+  },
+  {
+    "id": "c23c3031-c3ee-49c3-ab98-b8d54a26a82f",
+    "domain": "autozone.com",
+    "name": "AutoZone",
+    "category": "retailer",
+    "tags": [
+      "local_pickup",
+      "new_aftermarket"
+    ],
+    "notes": "National chain",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.686403+00:00",
+    "updated_at": "2026-02-15T17:15:40.686403+00:00"
+  },
+  {
+    "id": "343fd011-d6ba-4bd8-94dd-a7297557cd22",
+    "domain": "bimmerworld.com",
+    "name": "BimmerWorld",
+    "category": "retailer",
+    "tags": [
+      "bmw",
+      "performance",
+      "track"
+    ],
+    "notes": "Track-focused BMW",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.792087+00:00",
+    "updated_at": "2026-02-15T17:15:40.792087+00:00"
+  },
+  {
+    "id": "384a6bbf-54ea-4448-aa79-ece03c5bb4a7",
+    "domain": "carid.com",
+    "name": "CARiD",
+    "category": "retailer",
+    "tags": [
+      "accessories",
+      "body",
+      "lighting"
+    ],
+    "notes": "Big accessories catalog",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.711693+00:00",
+    "updated_at": "2026-02-15T17:15:40.711693+00:00"
+  },
+  {
+    "id": "50fec067-9f9b-4608-ac67-366cab2439ed",
+    "domain": "carparts.com",
+    "name": "CarParts.com",
+    "category": "retailer",
+    "tags": [
+      "new_aftermarket"
+    ],
+    "notes": "High volume",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.689968+00:00",
+    "updated_at": "2026-02-15T17:15:40.689968+00:00"
+  },
+  {
+    "id": "2182ffd6-2a7c-49bb-bc00-da5739d01951",
+    "domain": "classicindustries.com",
+    "name": "Classic Industries",
+    "category": "retailer",
+    "tags": [
+      "restoration"
+    ],
+    "notes": "Restoration",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.837858+00:00",
+    "updated_at": "2026-02-15T17:15:40.837858+00:00"
+  },
+  {
+    "id": "43a7f2d0-6740-4418-a4b7-652f588d8449",
+    "domain": "delcity.net",
+    "name": "Del City",
+    "category": "retailer",
+    "tags": [
+      "automotive_electrical",
+      "wire"
+    ],
+    "notes": "Automotive electrical",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.910835+00:00",
+    "updated_at": "2026-02-15T17:15:40.910835+00:00"
+  },
+  {
+    "id": "3a09e2d3-3e41-4ddd-895e-fc41b5a41121",
+    "domain": "design911.com",
+    "name": "Design911",
+    "category": "retailer",
+    "tags": [
+      "porsche",
+      "uk_ship_to_us"
+    ],
+    "notes": "Ships to US",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.816969+00:00",
+    "updated_at": "2026-02-15T17:15:40.816969+00:00"
+  },
+  {
+    "id": "a7022eb2-eab3-4269-bfc9-2f63e9ece735",
+    "domain": "discounttire.com",
+    "name": "Discount Tire",
+    "category": "retailer",
+    "tags": [
+      "tires_wheels"
+    ],
+    "notes": "Tires/wheels",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.709344+00:00",
+    "updated_at": "2026-02-15T17:15:40.709344+00:00"
+  },
+  {
+    "id": "8e6cb330-c586-4a16-9cc7-85b2f7d82df6",
+    "domain": "eastwood.com",
+    "name": "Eastwood",
+    "category": "retailer",
+    "tags": [
+      "paint_body",
+      "tools"
+    ],
+    "notes": "Paint/body supplies",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.844850+00:00",
+    "updated_at": "2026-02-15T17:15:40.844850+00:00"
+  },
+  {
+    "id": "e10d5d13-8cae-4ddc-87f9-5a19879f026c",
+    "domain": "ecstuning.com",
+    "name": "ECS Tuning",
+    "category": "retailer",
+    "tags": [
+      "euro",
+      "new_aftermarket",
+      "performance"
+    ],
+    "notes": "VAG + euro performance",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.775720+00:00",
+    "updated_at": "2026-02-15T17:15:40.775720+00:00"
+  },
+  {
+    "id": "e6ef28d6-4157-432d-b8c9-5d7e032d0dcd",
+    "domain": "eeuroparts.com",
+    "name": "eEuroparts",
+    "category": "retailer",
+    "tags": [
+      "euro",
+      "new_aftermarket"
+    ],
+    "notes": "Euro specialist",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.788805+00:00",
+    "updated_at": "2026-02-15T17:15:40.788805+00:00"
+  },
+  {
+    "id": "1813599a-0250-490f-b5cb-fdebf1ee0380",
+    "domain": "fcpeuro.com",
+    "name": "FCP Euro",
+    "category": "retailer",
+    "tags": [
+      "euro",
+      "new_aftermarket",
+      "oem_oe"
+    ],
+    "notes": "Euro specialist",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.772522+00:00",
+    "updated_at": "2026-02-15T17:15:40.772522+00:00"
+  },
+  {
+    "id": "1b3a147c-93e1-40a4-a1d0-67c28595bd28",
+    "domain": "hawkemotorsports.com",
+    "name": "Hawke Motorsports",
+    "category": "retailer",
+    "tags": [
+      "performance_specialist"
+    ],
+    "notes": "Example specialist shop",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.922765+00:00",
+    "updated_at": "2026-02-15T17:15:40.922765+00:00"
+  },
+  {
+    "id": "050ebbdd-657f-4ddb-8de4-42dd06c8e528",
+    "domain": "ipdusa.com",
+    "name": "IPD",
+    "category": "retailer",
+    "tags": [
+      "specialist",
+      "volvo"
+    ],
+    "notes": "Volvo specialist",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.795405+00:00",
+    "updated_at": "2026-02-15T17:15:40.795405+00:00"
+  },
+  {
+    "id": "d2422f7d-e364-498a-853d-47089b4caebe",
+    "domain": "jcwhitney.com",
+    "name": "JC Whitney",
+    "category": "retailer",
+    "tags": [
+      "accessories",
+      "new_aftermarket"
+    ],
+    "notes": "Legacy brand",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.702302+00:00",
+    "updated_at": "2026-02-15T17:15:40.702302+00:00"
+  },
+  {
+    "id": "293d3ad6-4034-44a5-b600-c266035fb1b3",
+    "domain": "jegs.com",
+    "name": "JEGS",
+    "category": "retailer",
+    "tags": [
+      "new_aftermarket",
+      "performance"
+    ],
+    "notes": "Major performance anchor",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.705366+00:00",
+    "updated_at": "2026-02-15T17:15:40.705366+00:00"
+  },
+  {
+    "id": "72c4c2b4-ca4b-4823-b173-0fd9c6303112",
+    "domain": "kanter.com",
+    "name": "Kanter Auto Products",
+    "category": "retailer",
+    "tags": [
+      "classic_restoration"
+    ],
+    "notes": "Classic restoration",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.825565+00:00",
+    "updated_at": "2026-02-15T17:15:40.825565+00:00"
+  },
+  {
+    "id": "67821588-75d1-41f8-a590-d89a92419d78",
+    "domain": "napaonline.com",
+    "name": "NAPA Online",
+    "category": "retailer",
+    "tags": [
+      "new_aftermarket",
+      "pro_channel"
+    ],
+    "notes": "Strong pro channel",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.689158+00:00",
+    "updated_at": "2026-02-15T17:15:40.689158+00:00"
+  },
+  {
+    "id": "6381c039-a2e8-4d5b-9778-b64f8e922317",
+    "domain": "nationalpartsdepot.com",
+    "name": "National Parts Depot",
+    "category": "retailer",
+    "tags": [
+      "restoration"
+    ],
+    "notes": "Restoration",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.841694+00:00",
+    "updated_at": "2026-02-15T17:15:40.841694+00:00"
+  },
+  {
+    "id": "e18d8319-bb42-400c-bd06-6f1202dc9fb2",
+    "domain": "oreillyauto.com",
+    "name": "O'Reilly Auto Parts",
+    "category": "retailer",
+    "tags": [
+      "local_pickup",
+      "new_aftermarket"
+    ],
+    "notes": "National chain",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.687179+00:00",
+    "updated_at": "2026-02-15T17:15:40.687179+00:00"
+  },
+  {
+    "id": "51bf851c-03bf-4432-81e4-dc3f56dc1c9d",
+    "domain": "partsgeek.com",
+    "name": "Parts Geek",
+    "category": "retailer",
+    "tags": [
+      "new_aftermarket"
+    ],
+    "notes": "Aggregator-like retail",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.692120+00:00",
+    "updated_at": "2026-02-15T17:15:40.692120+00:00"
+  },
+  {
+    "id": "1246ff5b-2c61-40a0-b34b-ae52c3348b8f",
+    "domain": "pelicanparts.com",
+    "name": "Pelican Parts",
+    "category": "retailer",
+    "tags": [
+      "euro",
+      "porsche",
+      "repair_content"
+    ],
+    "notes": "Euro + Porsche",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.781288+00:00",
+    "updated_at": "2026-02-15T17:15:40.781288+00:00"
+  },
+  {
+    "id": "b2e6a541-5c89-4c3d-a3ad-a1fbd867a34f",
+    "domain": "por15.com",
+    "name": "POR-15",
+    "category": "retailer",
+    "tags": [
+      "paint_rust"
+    ],
+    "notes": "Rust coatings",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.850339+00:00",
+    "updated_at": "2026-02-15T17:15:40.850339+00:00"
+  },
+  {
+    "id": "c1ac099e-38c0-4ad2-abe7-86add06c7acc",
+    "domain": "rockauto.com",
+    "name": "RockAuto",
+    "category": "retailer",
+    "tags": [
+      "new_aftermarket",
+      "wide_catalog"
+    ],
+    "notes": "Huge catalog depth",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.685468+00:00",
+    "updated_at": "2026-02-15T17:15:40.685468+00:00"
+  },
+  {
+    "id": "f395886b-8e7c-4791-98a5-1464bb9b1551",
+    "domain": "rosepassion.com",
+    "name": "Rose Passion",
+    "category": "retailer",
+    "tags": [
+      "eu_ship_to_us",
+      "porsche"
+    ],
+    "notes": "Ships to US",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.821005+00:00",
+    "updated_at": "2026-02-15T17:15:40.821005+00:00"
+  },
+  {
+    "id": "e42f1a26-f257-4856-b67d-00f61790c735",
+    "domain": "sierramadrecollection.com",
+    "name": "Sierra Madre Collection",
+    "category": "retailer",
+    "tags": [
+      "porsche",
+      "restoration"
+    ],
+    "notes": "Classic Porsche restoration",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.812359+00:00",
+    "updated_at": "2026-02-15T17:15:40.812359+00:00"
+  },
+  {
+    "id": "c601fc93-d380-43da-b0e0-da3ac6f1d86f",
+    "domain": "simpletire.com",
+    "name": "SimpleTire",
+    "category": "retailer",
+    "tags": [
+      "tires_wheels"
+    ],
+    "notes": "Tires/wheels",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.710455+00:00",
+    "updated_at": "2026-02-15T17:15:40.710455+00:00"
+  },
+  {
+    "id": "d8604423-bd10-47b7-be58-0dd65cf092fc",
+    "domain": "speedwaymotors.com",
+    "name": "Speedway Motors",
+    "category": "retailer",
+    "tags": [
+      "classic_hotrod",
+      "performance"
+    ],
+    "notes": "Hot rod + general",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.706793+00:00",
+    "updated_at": "2026-02-15T17:15:40.706793+00:00"
+  },
+  {
+    "id": "fc5d39e2-09be-412e-9a7d-50e8442f1c7b",
+    "domain": "steelerubber.com",
+    "name": "Steele Rubber Products",
+    "category": "retailer",
+    "tags": [
+      "restoration",
+      "rubber_seals"
+    ],
+    "notes": "Weatherstripping/seals",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.828644+00:00",
+    "updated_at": "2026-02-15T17:15:40.828644+00:00"
+  },
+  {
+    "id": "13cd9321-86e2-4571-9b6d-2bbba984a827",
+    "domain": "stoddard.com",
+    "name": "Stoddard",
+    "category": "retailer",
+    "tags": [
+      "porsche",
+      "restoration"
+    ],
+    "notes": "Classic Porsche restoration",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.808589+00:00",
+    "updated_at": "2026-02-15T17:15:40.808589+00:00"
+  },
+  {
+    "id": "a1dfe028-6bdd-4d75-8e4c-df6e781348ca",
+    "domain": "summitracing.com",
+    "name": "Summit Racing",
+    "category": "retailer",
+    "tags": [
+      "new_aftermarket",
+      "performance"
+    ],
+    "notes": "Major performance anchor",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.704022+00:00",
+    "updated_at": "2026-02-15T17:15:40.704022+00:00"
+  },
+  {
+    "id": "8c764451-2616-4c6d-b6de-d93c91374647",
+    "domain": "swedishcarparts.com",
+    "name": "Swedish Car Parts",
+    "category": "retailer",
+    "tags": [
+      "new_used",
+      "volvo"
+    ],
+    "notes": "Volvo specialist",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.800186+00:00",
+    "updated_at": "2026-02-15T17:15:40.800186+00:00"
+  },
+  {
+    "id": "0425b344-c54e-4e66-88cf-55ffcf6bde17",
+    "domain": "tirerack.com",
+    "name": "Tire Rack",
+    "category": "retailer",
+    "tags": [
+      "tires_wheels"
+    ],
+    "notes": "Tires/wheels",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.708166+00:00",
+    "updated_at": "2026-02-15T17:15:40.708166+00:00"
+  },
+  {
+    "id": "4ae6ea0f-8033-4065-ad17-18018c2554da",
+    "domain": "turnermotorsport.com",
+    "name": "Turner Motorsport",
+    "category": "retailer",
+    "tags": [
+      "bmw",
+      "new_aftermarket",
+      "performance"
+    ],
+    "notes": "BMW performance",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.777849+00:00",
+    "updated_at": "2026-02-15T17:15:40.777849+00:00"
+  },
+  {
+    "id": "32d233b0-027b-4463-b4b3-15b4e9589120",
+    "domain": "waytekwire.com",
+    "name": "Waytek Wire",
+    "category": "retailer",
+    "tags": [
+      "automotive_electrical",
+      "connectors",
+      "wire"
+    ],
+    "notes": "Automotive electrical",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.905500+00:00",
+    "updated_at": "2026-02-15T17:15:40.905500+00:00"
+  },
+  {
+    "id": "599c5552-51ee-4f98-8a34-dcbebccb0dd9",
+    "domain": "yearone.com",
+    "name": "YearOne",
+    "category": "retailer",
+    "tags": [
+      "muscle",
+      "restoration"
+    ],
+    "notes": "Restoration",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 60,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.833214+00:00",
+    "updated_at": "2026-02-15T17:15:40.833214+00:00"
+  },
+  {
+    "id": "617ebe71-1804-4435-9f9c-ffe80a9e4f8d",
+    "domain": "picknpull.com",
+    "name": "Pick-n-Pull",
+    "category": "salvage_yard",
+    "tags": [
+      "pick_pull",
+      "used"
+    ],
+    "notes": "Yard inventory",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 45,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.736081+00:00",
+    "updated_at": "2026-02-15T17:15:40.736081+00:00"
+  },
+  {
+    "id": "96592392-d020-4e69-ac4c-aeec1f54ce18",
+    "domain": "pullapart.com",
+    "name": "Pull-A-Part",
+    "category": "salvage_yard",
+    "tags": [
+      "pick_pull",
+      "used"
+    ],
+    "notes": "Yard inventory",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 45,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.732774+00:00",
+    "updated_at": "2026-02-15T17:15:40.732774+00:00"
+  },
+  {
+    "id": "d3b8c11b-8502-4eaf-9cf8-6dce774c333b",
+    "domain": "upullandpay.com",
+    "name": "U-Pull-&-Pay",
+    "category": "salvage_yard",
+    "tags": [
+      "pick_pull",
+      "used"
+    ],
+    "notes": "Yard inventory",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 45,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.739160+00:00",
+    "updated_at": "2026-02-15T17:15:40.739160+00:00"
+  },
+  {
+    "id": "f4b62d58-2ce2-4505-8527-73c3652b7532",
+    "domain": "row52.com",
+    "name": "Row52",
+    "category": "used_aggregator",
+    "tags": [
+      "pick_pull_inventory",
+      "used"
+    ],
+    "notes": "Self-service inventory",
+    "source_type": "buyable",
+    "status": "active",
+    "priority": 55,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.729396+00:00",
+    "updated_at": "2026-02-15T17:15:40.729396+00:00"
+  },
+  {
+    "id": "34123438-5f57-4f9c-b1ed-c74ad56a9981",
+    "domain": "realoem.com",
+    "name": "RealOEM",
+    "category": "epc",
+    "tags": [
+      "bmw",
+      "diagrams",
+      "part_numbers"
+    ],
+    "notes": "BMW diagram/PN lookup",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 40,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.942184+00:00",
+    "updated_at": "2026-02-15T17:15:40.942184+00:00"
+  },
+  {
+    "id": "47e8a31a-29b0-458d-8e4a-4d14d1b5d38b",
+    "domain": "toyota.epc-data.com",
+    "name": "EPC-Data Toyota",
+    "category": "epc",
+    "tags": [
+      "diagrams",
+      "part_numbers",
+      "toyota"
+    ],
+    "notes": "Toyota EPC mirror-style",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 40,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.966496+00:00",
+    "updated_at": "2026-02-15T17:15:40.966496+00:00"
+  },
+  {
+    "id": "21771179-4acd-456c-845f-b5490a59f2d5",
+    "domain": "amayama.com",
+    "name": "Amayama",
+    "category": "epc_retail",
+    "tags": [
+      "international_shipping",
+      "multi_make",
+      "oem_catalog"
+    ],
+    "notes": "EPC browsing + buy",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 45,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.954479+00:00",
+    "updated_at": "2026-02-15T17:15:40.954479+00:00"
+  },
+  {
+    "id": "0cbd17e1-119d-46f9-9d47-5b9eb4973c1a",
+    "domain": "megazip.net",
+    "name": "MegaZip",
+    "category": "epc_retail",
+    "tags": [
+      "international_shipping",
+      "multi_make",
+      "oem_catalog"
+    ],
+    "notes": "EPC browsing + buy",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 45,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.959719+00:00",
+    "updated_at": "2026-02-15T17:15:40.959719+00:00"
+  },
+  {
+    "id": "43513a5e-18a8-4019-b130-06de98c1ea7b",
+    "domain": "partsouq.com",
+    "name": "Partsouq",
+    "category": "epc_retail",
+    "tags": [
+      "multi_make",
+      "oem_catalog",
+      "vin_lookup"
+    ],
+    "notes": "EPC browsing + buy; VIN support varies",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 45,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.948317+00:00",
+    "updated_at": "2026-02-15T17:15:40.948317+00:00"
+  },
+  {
+    "id": "c164c8ad-286e-4c0c-b991-a7319408e3cc",
+    "domain": "car-part.com",
+    "name": "car-part.com",
+    "category": "interchange",
+    "tags": [
+      "interchange",
+      "salvage_network",
+      "used"
+    ],
+    "notes": "Interchange + inventory backbone",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 65,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.725120+00:00",
+    "updated_at": "2026-02-15T17:15:40.929855+00:00"
+  },
+  {
+    "id": "5491bbba-364c-433e-b122-19357dcf1dd5",
+    "domain": "lkqonline.com",
+    "name": "LKQ Online",
+    "category": "interchange",
+    "tags": [
+      "recycled_oe",
+      "used"
+    ],
+    "notes": "Used/recycled OE; partial interchange semantics",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 65,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.727203+00:00",
+    "updated_at": "2026-02-15T17:15:40.936290+00:00"
+  },
+  {
+    "id": "a4214351-01b7-47c8-bbcb-8e2d8a271c97",
+    "domain": "parts.acura.com",
+    "name": "Acura Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "acura",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.996366+00:00",
+    "updated_at": "2026-02-15T17:15:40.996366+00:00"
+  },
+  {
+    "id": "2b0d1617-36ff-4b9b-9e44-d483e1492096",
+    "domain": "parts.ford.com",
+    "name": "Ford Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "ford",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.972318+00:00",
+    "updated_at": "2026-02-15T17:15:40.972318+00:00"
+  },
+  {
+    "id": "6cbd6c67-6932-4d44-8c43-5b65eaaac08b",
+    "domain": "parts.gm.com",
+    "name": "GM Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "gm",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:41.016335+00:00",
+    "updated_at": "2026-02-15T17:15:41.016335+00:00"
+  },
+  {
+    "id": "44108668-60b6-4ef7-838d-6e51931b31d8",
+    "domain": "parts.honda.com",
+    "name": "Honda Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "honda",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.990735+00:00",
+    "updated_at": "2026-02-15T17:15:40.990735+00:00"
+  },
+  {
+    "id": "e7218a72-98d4-46dd-b72f-0ada6403b9b0",
+    "domain": "parts.lexus.com",
+    "name": "Lexus Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "lexus",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.984796+00:00",
+    "updated_at": "2026-02-15T17:15:40.984796+00:00"
+  },
+  {
+    "id": "303dd555-309a-46b1-825b-001f50fe2a7c",
+    "domain": "parts.mbusa.com",
+    "name": "Mercedes-Benz Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "mercedes",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:41.031169+00:00",
+    "updated_at": "2026-02-15T17:15:41.031169+00:00"
+  },
+  {
+    "id": "e18eb883-5da7-4370-b4e7-7f8b39ff752b",
+    "domain": "parts.mopar.com",
+    "name": "Mopar Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "mopar",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:41.022515+00:00",
+    "updated_at": "2026-02-15T17:15:41.022515+00:00"
+  },
+  {
+    "id": "42256256-14ad-4cf2-90b9-41510d053e26",
+    "domain": "parts.nissanusa.com",
+    "name": "Nissan Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "nissan",
+      "official"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:41.002814+00:00",
+    "updated_at": "2026-02-15T17:15:41.002814+00:00"
+  },
+  {
+    "id": "a2d516f5-98e6-4001-be0b-3779a910e64d",
+    "domain": "parts.subaru.com",
+    "name": "Subaru Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "official",
+      "subaru"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:41.009071+00:00",
+    "updated_at": "2026-02-15T17:15:41.009071+00:00"
+  },
+  {
+    "id": "5084aa71-aa01-4749-be64-ba04f5c89b5b",
+    "domain": "parts.toyota.com",
+    "name": "Toyota Parts (official)",
+    "category": "oem_catalog",
+    "tags": [
+      "official",
+      "toyota"
+    ],
+    "notes": "Official OEM catalog/storefront",
+    "source_type": "reference",
+    "status": "active",
+    "priority": 75,
+    "supports_vin": false,
+    "supports_part_number_search": true,
+    "robots_policy": "unknown",
+    "sitemap_url": null,
+    "created_at": "2026-02-15T17:15:40.977373+00:00",
+    "updated_at": "2026-02-15T17:15:40.977373+00:00"
+  }
+]

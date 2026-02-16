@@ -9,8 +9,10 @@ This connector generates direct links to car-part.com. Real scraping would
 require structured vehicle data (year, make, model) and a part-category
 mapping layer, which is a future enhancement.
 """
+
 import logging
-from typing import Dict, Any
+from typing import Any
+
 from app.ingestion.base import BaseConnector
 from app.schemas.search import ExternalLink
 
@@ -27,11 +29,11 @@ class CarPartConnector(BaseConnector):
     def __init__(self):
         super().__init__("carpart")
 
-    async def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def search(self, query: str, **kwargs) -> dict[str, Any]:
         """Generate Car-Part.com links. No scraping (requires structured POST)."""
         return self._generate_links(query)
 
-    def _generate_links(self, query: str) -> Dict[str, Any]:
+    def _generate_links(self, query: str) -> dict[str, Any]:
         """Generate a link to Car-Part.com's main search page."""
         return {
             "market_listings": [],

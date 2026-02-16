@@ -1,0 +1,3 @@
+part_id,vehicle_id,config_id,position,qualifiers_json,vin_range_start,vin_range_end,build_date_start,build_date_end,confidence,source_domain
+1,1,,,{},,,,100,example.com
+2,2,,front,"{""with_abs"":true}",,,,,100,example.com

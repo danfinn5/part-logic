@@ -74,22 +74,22 @@ bash setup_venv.sh
    ```
 
 5. **Start Redis:**
-   
+
    **Using Podman (Fedora default, recommended):**
    ```bash
    podman run -d -p 6379:6379 --name partlogic-redis docker.io/redis:7-alpine
    ```
-   
+
    **Using Docker:**
    ```bash
    docker run -d -p 6379:6379 --name partlogic-redis redis:7-alpine
    ```
-   
+
    **Or use a local Redis installation:**
    ```bash
    redis-server
    ```
-   
+
    **Note:** If using Podman and you get "short-name resolution" errors, configure it:
    ```bash
    mkdir -p ~/.config/containers

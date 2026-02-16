@@ -1,15 +1,16 @@
 """
 Ranking and sorting utilities for search results.
 """
-from typing import List, Optional
-from app.schemas.search import MarketListing, SalvageHit, ExternalLink
-from app.utils.query_analysis import QueryAnalysis, QueryType
+
+from app.schemas.search import ExternalLink, MarketListing, SalvageHit
+from app.utils.brand_intelligence import get_brand_tier_boost
+from app.utils.query_analysis import QueryAnalysis
 
 
 def _relevance_score(
     listing: MarketListing,
     query: str,
-    analysis: Optional[QueryAnalysis] = None,
+    analysis: QueryAnalysis | None = None,
 ) -> float:
     """Score a listing for relevance ranking. Higher is better."""
     score = 0.0
@@ -88,15 +89,31 @@ def _relevance_score(
                     score += 5.0
                     break
 
+        # Brand tier boost: prefer higher-quality brands
+        if listing.brand:
+            score += get_brand_tier_boost(listing.brand, analysis.query_type.value)
+
     return score
 
 
+def _value_score(listing: MarketListing) -> float:
+    """Quality-per-dollar score for value-based sorting."""
+    from app.data.brand_knowledge import get_brand_profile
+
+    total = listing.price + (listing.shipping_cost or 0.0)
+    if total <= 0:
+        return 0.0
+    profile = get_brand_profile(listing.brand) if listing.brand else None
+    quality = profile["quality_score"] if profile else 5.0
+    return (quality * 10) / total
+
+
 def rank_listings(
-    listings: List[MarketListing],
+    listings: list[MarketListing],
     query: str,
     sort: str = "relevance",
-    analysis: Optional[QueryAnalysis] = None,
-) -> List[MarketListing]:
+    analysis: QueryAnalysis | None = None,
+) -> list[MarketListing]:
     """
     Rank/sort MarketListing results.
 
@@ -104,11 +121,14 @@ def rank_listings(
     - "relevance" (default): multi-factor relevance score
     - "price_asc": cheapest first
     - "price_desc": most expensive first
+    - "value": best quality-to-price ratio
     """
     if sort == "price_asc":
         return sorted(listings, key=lambda x: x.price if x.price > 0 else float("inf"))
     elif sort == "price_desc":
         return sorted(listings, key=lambda x: x.price, reverse=True)
+    elif sort == "value":
+        return sorted(listings, key=lambda x: _value_score(x), reverse=True)
     else:
         return sorted(
             listings,
@@ -118,9 +138,9 @@ def rank_listings(
 
 
 def filter_salvage_hits(
-    hits: List[SalvageHit],
-    analysis: Optional[QueryAnalysis] = None,
-) -> List[SalvageHit]:
+    hits: list[SalvageHit],
+    analysis: QueryAnalysis | None = None,
+) -> list[SalvageHit]:
     """
     Filter salvage hits based on query analysis context.
 
@@ -159,7 +179,7 @@ def filter_salvage_hits(
 _CATEGORY_ORDER = {"new_parts": 0, "used_salvage": 1, "repair_resources": 2}
 
 
-def group_links_by_category(links: List[ExternalLink]) -> List[ExternalLink]:
+def group_links_by_category(links: list[ExternalLink]) -> list[ExternalLink]:
     """Sort external links grouped by category: New Parts, Used/Salvage, Repair Resources."""
     return sorted(
         links,

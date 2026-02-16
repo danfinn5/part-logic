@@ -4,16 +4,18 @@ Partsouq OEM parts connector.
 Uses Playwright to bypass Cloudflare protection and scrape OEM part listings.
 Falls back to link generation when Playwright is unavailable or scraping fails.
 """
+
 import logging
-from typing import Dict, Any
+from typing import Any
 from urllib.parse import quote_plus
+
 from bs4 import BeautifulSoup
-from app.ingestion.base import BaseConnector
-from app.schemas.search import MarketListing, ExternalLink
+
 from app.config import settings
-from app.utils.scraping import parse_price
-from app.utils.normalization import clean_url
+from app.ingestion.base import BaseConnector
+from app.schemas.search import ExternalLink, MarketListing
 from app.utils.part_numbers import extract_part_numbers
+from app.utils.scraping import parse_price
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ class PartsouqConnector(BaseConnector):
     def __init__(self):
         super().__init__("partsouq")
 
-    async def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def search(self, query: str, **kwargs) -> dict[str, Any]:
         """Search Partsouq. Uses Playwright to bypass Cloudflare."""
         if not settings.scrape_enabled or not settings.playwright_enabled:
             return self._generate_links(query, kwargs)
@@ -37,7 +39,7 @@ class PartsouqConnector(BaseConnector):
             logger.warning(f"Partsouq scrape failed: {e}")
             return self._generate_links(query, kwargs)
 
-    async def _scrape(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def _scrape(self, query: str, **kwargs) -> dict[str, Any]:
         """Use Playwright to fetch and parse Partsouq search results."""
         from app.utils.browser import get_page
 
@@ -69,22 +71,18 @@ class PartsouqConnector(BaseConnector):
         for product in products:
             # Title / part name
             title_el = product.select_one(
-                ".part-name, .product-name, .title, h3, h4, "
-                "[class*='name'], [class*='title'] a"
+                ".part-name, .product-name, .title, h3, h4, [class*='name'], [class*='title'] a"
             )
             title = title_el.get_text(strip=True) if title_el else ""
 
             # OEM part number
             pn_el = product.select_one(
-                ".part-number, .oem-number, [class*='partNumber'], "
-                "[class*='part-num'], [class*='oem'], .sku"
+                ".part-number, .oem-number, [class*='partNumber'], [class*='part-num'], [class*='oem'], .sku"
             )
             part_num = pn_el.get_text(strip=True) if pn_el else ""
 
             # Price
-            price_el = product.select_one(
-                ".price, .product-price, [class*='price']"
-            )
+            price_el = product.select_one(".price, .product-price, [class*='price']")
             price = parse_price(price_el.get_text(strip=True)) if price_el else 0.0
 
             # URL
@@ -112,15 +110,17 @@ class PartsouqConnector(BaseConnector):
 
             part_numbers = [part_num] if part_num else extract_part_numbers(title)
 
-            listings.append(MarketListing(
-                source="partsouq",
-                title=title or f"OEM Part {part_num}",
-                price=price,
-                condition="New",
-                url=product_url or url,
-                part_numbers=part_numbers,
-                image_url=image_url,
-            ))
+            listings.append(
+                MarketListing(
+                    source="partsouq",
+                    title=title or f"OEM Part {part_num}",
+                    price=price,
+                    condition="New",
+                    url=product_url or url,
+                    part_numbers=part_numbers,
+                    image_url=image_url,
+                )
+            )
 
             if len(listings) >= settings.max_results_per_source:
                 break
@@ -132,7 +132,7 @@ class PartsouqConnector(BaseConnector):
             "error": None,
         }
 
-    def _generate_links(self, query: str, kwargs: dict = None) -> Dict[str, Any]:
+    def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate Partsouq search links (fallback)."""
         encoded = quote_plus(query)
         links = [
@@ -147,12 +147,14 @@ class PartsouqConnector(BaseConnector):
         part_numbers = (kwargs or {}).get("part_numbers") or extract_part_numbers(query)
         for pn in part_numbers:
             encoded_pn = quote_plus(pn)
-            links.append(ExternalLink(
-                label=f"Partsouq OEM: {pn}",
-                url=f"https://partsouq.com/en/search/all?q={encoded_pn}",
-                source="partsouq",
-                category="new_parts",
-            ))
+            links.append(
+                ExternalLink(
+                    label=f"Partsouq OEM: {pn}",
+                    url=f"https://partsouq.com/en/search/all?q={encoded_pn}",
+                    source="partsouq",
+                    category="new_parts",
+                )
+            )
 
         return {
             "market_listings": [],

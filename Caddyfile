@@ -1,0 +1,17 @@
+# Replace with your domain name for production
+# partlogic.example.com {
+#     reverse_proxy frontend:3000
+#
+#     handle /api/* {
+#         reverse_proxy backend:8000
+#     }
+# }
+
+# For local development without domain:
+:80 {
+    reverse_proxy frontend:3000
+
+    handle_path /api/* {
+        reverse_proxy backend:8000
+    }
+}

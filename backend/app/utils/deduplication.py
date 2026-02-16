@@ -1,14 +1,14 @@
 """
 Deduplication utilities for search results.
 """
-from typing import List
-from app.schemas.search import MarketListing, ExternalLink
+
+from app.schemas.search import ExternalLink, MarketListing
 
 
-def deduplicate_listings(listings: List[MarketListing]) -> List[MarketListing]:
+def deduplicate_listings(listings: list[MarketListing]) -> list[MarketListing]:
     """Deduplicate MarketListing results by URL."""
     seen_urls: set = set()
-    unique: List[MarketListing] = []
+    unique: list[MarketListing] = []
     for listing in listings:
         if listing.url not in seen_urls:
             seen_urls.add(listing.url)
@@ -16,10 +16,10 @@ def deduplicate_listings(listings: List[MarketListing]) -> List[MarketListing]:
     return unique
 
 
-def deduplicate_links(links: List[ExternalLink]) -> List[ExternalLink]:
+def deduplicate_links(links: list[ExternalLink]) -> list[ExternalLink]:
     """Deduplicate ExternalLink results by (source, url) pair."""
     seen: set = set()
-    unique: List[ExternalLink] = []
+    unique: list[ExternalLink] = []
     for link in links:
         key = (link.source, link.url)
         if key not in seen:

@@ -1,7 +1,8 @@
 """Tests for ranking and sorting utilities."""
-from app.utils.ranking import rank_listings, filter_salvage_hits, group_links_by_category
-from app.schemas.search import MarketListing, SalvageHit, ExternalLink
+
+from app.schemas.search import ExternalLink, MarketListing, SalvageHit
 from app.utils.query_analysis import QueryAnalysis, QueryType
+from app.utils.ranking import filter_salvage_hits, group_links_by_category, rank_listings
 
 
 def _make_listing(**kwargs):
@@ -73,7 +74,13 @@ class TestGroupLinksByCategory:
 
 
 def _make_salvage_hit(**kwargs):
-    defaults = {"source": "row52", "yard_name": "Test Yard", "yard_location": "Test, CA", "vehicle": "2015 Honda Civic", "url": "https://example.com"}
+    defaults = {
+        "source": "row52",
+        "yard_name": "Test Yard",
+        "yard_location": "Test, CA",
+        "vehicle": "2015 Honda Civic",
+        "url": "https://example.com",
+    }
     defaults.update(kwargs)
     return SalvageHit(**defaults)
 

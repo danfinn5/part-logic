@@ -5,9 +5,11 @@ Tests that each rewritten connector:
 2. Falls back to link generation when scraping fails
 3. Falls back to link generation when scrape_enabled=False
 """
-import pytest
-from unittest.mock import patch, AsyncMock
+
 from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 # --- HTML fixture snippets (matching actual site structures) ---
 
@@ -141,6 +143,7 @@ AMAZON_HTML = """
 
 # --- Helper to mock fetch_html ---
 
+
 def _mock_fetch(html_content):
     """Return an AsyncMock that resolves to (html, 200)."""
     return AsyncMock(return_value=(html_content, 200))
@@ -174,10 +177,12 @@ def _make_mock_get_page(html_content):
 
 # --- CarPart tests (link generator only — no free-text search URL) ---
 
+
 class TestCarPartConnector:
     @pytest.mark.asyncio
     async def test_generates_links(self):
         from app.ingestion.carpart import CarPartConnector
+
         connector = CarPartConnector()
         result = await connector.search("brake caliper")
 
@@ -193,13 +198,17 @@ class TestCarPartConnector:
 
 # --- Row52 tests ---
 
+
 class TestRow52Connector:
     @pytest.mark.asyncio
     async def test_scrape_parses_salvage_hits(self):
         from app.ingestion.row52 import Row52Connector
+
         connector = Row52Connector()
-        with patch("app.ingestion.row52.fetch_html", _mock_fetch(ROW52_HTML)), \
-             patch("app.ingestion.row52.settings") as mock_settings:
+        with (
+            patch("app.ingestion.row52.fetch_html", _mock_fetch(ROW52_HTML)),
+            patch("app.ingestion.row52.settings") as mock_settings,
+        ):
             mock_settings.scrape_enabled = True
             mock_settings.carpart_default_zip = ""
             mock_settings.max_results_per_source = 20
@@ -219,9 +228,12 @@ class TestRow52Connector:
     @pytest.mark.asyncio
     async def test_scrape_parses_date(self):
         from app.ingestion.row52 import Row52Connector
+
         connector = Row52Connector()
-        with patch("app.ingestion.row52.fetch_html", _mock_fetch(ROW52_HTML)), \
-             patch("app.ingestion.row52.settings") as mock_settings:
+        with (
+            patch("app.ingestion.row52.fetch_html", _mock_fetch(ROW52_HTML)),
+            patch("app.ingestion.row52.settings") as mock_settings,
+        ):
             mock_settings.scrape_enabled = True
             mock_settings.carpart_default_zip = ""
             mock_settings.max_results_per_source = 20
@@ -236,9 +248,12 @@ class TestRow52Connector:
     @pytest.mark.asyncio
     async def test_fallback_on_scrape_failure(self):
         from app.ingestion.row52 import Row52Connector
+
         connector = Row52Connector()
-        with patch("app.ingestion.row52.fetch_html", _mock_fetch_error()), \
-             patch("app.ingestion.row52.settings") as mock_settings:
+        with (
+            patch("app.ingestion.row52.fetch_html", _mock_fetch_error()),
+            patch("app.ingestion.row52.settings") as mock_settings,
+        ):
             mock_settings.scrape_enabled = True
             mock_settings.carpart_default_zip = ""
             result = await connector.search("BMW brake")
@@ -249,6 +264,7 @@ class TestRow52Connector:
     @pytest.mark.asyncio
     async def test_link_mode_when_scrape_disabled(self):
         from app.ingestion.row52 import Row52Connector
+
         connector = Row52Connector()
         with patch("app.ingestion.row52.settings") as mock_settings:
             mock_settings.scrape_enabled = False
@@ -261,10 +277,12 @@ class TestRow52Connector:
 
 # --- ECS Tuning tests (Playwright-based) ---
 
+
 class TestECSTuningConnector:
     @pytest.mark.asyncio
     async def test_scrape_parses_listings(self):
         from app.ingestion.ecstuning import ECSTuningConnector
+
         connector = ECSTuningConnector()
         mock_get_page = _make_mock_get_page(ECSTUNING_HTML)
 
@@ -274,6 +292,7 @@ class TestECSTuningConnector:
             mock_settings.max_results_per_source = 20
             with patch("app.utils.browser.get_page", mock_get_page):
                 import app.utils.browser
+
                 with patch.object(app.utils.browser, "get_page", mock_get_page):
                     result = await connector._scrape("BMW brake pad")
 
@@ -288,6 +307,7 @@ class TestECSTuningConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_playwright_disabled(self):
         from app.ingestion.ecstuning import ECSTuningConnector
+
         connector = ECSTuningConnector()
         with patch("app.ingestion.ecstuning.settings") as mock_settings:
             mock_settings.scrape_enabled = True
@@ -300,6 +320,7 @@ class TestECSTuningConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_scrape_disabled(self):
         from app.ingestion.ecstuning import ECSTuningConnector
+
         connector = ECSTuningConnector()
         with patch("app.ingestion.ecstuning.settings") as mock_settings:
             mock_settings.scrape_enabled = False
@@ -312,14 +333,18 @@ class TestECSTuningConnector:
 
 # --- FCP Euro tests ---
 
+
 class TestFCPEuroConnector:
     @pytest.mark.asyncio
     async def test_scrape_gtm_json(self):
         """Test parsing GTM JSON embedded in turbo-frame."""
         from app.ingestion.fcpeuro import FCPEuroConnector
+
         connector = FCPEuroConnector()
-        with patch("app.ingestion.fcpeuro.fetch_html", _mock_fetch(FCPEURO_GTM_HTML)), \
-             patch("app.ingestion.fcpeuro.settings") as mock_settings:
+        with (
+            patch("app.ingestion.fcpeuro.fetch_html", _mock_fetch(FCPEURO_GTM_HTML)),
+            patch("app.ingestion.fcpeuro.settings") as mock_settings,
+        ):
             mock_settings.scrape_enabled = True
             mock_settings.max_results_per_source = 20
             result = await connector.search("BMW brake pad")
@@ -340,9 +365,12 @@ class TestFCPEuroConnector:
     async def test_scrape_hit_cards_fallback(self):
         """Test parsing .hit cards when GTM JSON is unavailable."""
         from app.ingestion.fcpeuro import FCPEuroConnector
+
         connector = FCPEuroConnector()
-        with patch("app.ingestion.fcpeuro.fetch_html", _mock_fetch(FCPEURO_HITCARD_HTML)), \
-             patch("app.ingestion.fcpeuro.settings") as mock_settings:
+        with (
+            patch("app.ingestion.fcpeuro.fetch_html", _mock_fetch(FCPEURO_HITCARD_HTML)),
+            patch("app.ingestion.fcpeuro.settings") as mock_settings,
+        ):
             mock_settings.scrape_enabled = True
             mock_settings.max_results_per_source = 20
             result = await connector.search("BMW brake pad")
@@ -358,9 +386,12 @@ class TestFCPEuroConnector:
     @pytest.mark.asyncio
     async def test_fallback_on_scrape_failure(self):
         from app.ingestion.fcpeuro import FCPEuroConnector
+
         connector = FCPEuroConnector()
-        with patch("app.ingestion.fcpeuro.fetch_html", _mock_fetch_error()), \
-             patch("app.ingestion.fcpeuro.settings") as mock_settings:
+        with (
+            patch("app.ingestion.fcpeuro.fetch_html", _mock_fetch_error()),
+            patch("app.ingestion.fcpeuro.settings") as mock_settings,
+        ):
             mock_settings.scrape_enabled = True
             mock_settings.max_results_per_source = 20
             result = await connector.search("brake pad")
@@ -371,6 +402,7 @@ class TestFCPEuroConnector:
     @pytest.mark.asyncio
     async def test_link_mode_when_scrape_disabled(self):
         from app.ingestion.fcpeuro import FCPEuroConnector
+
         connector = FCPEuroConnector()
         with patch("app.ingestion.fcpeuro.settings") as mock_settings:
             mock_settings.scrape_enabled = False
@@ -382,10 +414,12 @@ class TestFCPEuroConnector:
 
 # --- Partsouq tests (Playwright-based) ---
 
+
 class TestPartsouqConnector:
     @pytest.mark.asyncio
     async def test_scrape_parses_listings(self):
         from app.ingestion.partsouq import PartsouqConnector
+
         connector = PartsouqConnector()
         mock_get_page = _make_mock_get_page(PARTSOUQ_HTML)
 
@@ -395,6 +429,7 @@ class TestPartsouqConnector:
             mock_settings.max_results_per_source = 20
             with patch("app.utils.browser.get_page", mock_get_page):
                 import app.utils.browser
+
                 with patch.object(app.utils.browser, "get_page", mock_get_page):
                     result = await connector._scrape("34-11-6-799-166")
 
@@ -408,6 +443,7 @@ class TestPartsouqConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_playwright_disabled(self):
         from app.ingestion.partsouq import PartsouqConnector
+
         connector = PartsouqConnector()
         with patch("app.ingestion.partsouq.settings") as mock_settings:
             mock_settings.scrape_enabled = True
@@ -420,6 +456,7 @@ class TestPartsouqConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_scrape_disabled(self):
         from app.ingestion.partsouq import PartsouqConnector
+
         connector = PartsouqConnector()
         with patch("app.ingestion.partsouq.settings") as mock_settings:
             mock_settings.scrape_enabled = False
@@ -432,10 +469,12 @@ class TestPartsouqConnector:
 
 # --- RockAuto tests (Playwright-based) ---
 
+
 class TestRockAutoConnector:
     @pytest.mark.asyncio
     async def test_scrape_parses_listings(self):
         from app.ingestion.rockauto import RockAutoConnector
+
         connector = RockAutoConnector()
         mock_get_page = _make_mock_get_page(ROCKAUTO_HTML)
 
@@ -445,6 +484,7 @@ class TestRockAutoConnector:
             mock_settings.max_results_per_source = 20
             with patch("app.utils.browser.get_page", mock_get_page):
                 import app.utils.browser
+
                 with patch.object(app.utils.browser, "get_page", mock_get_page):
                     result = await connector._scrape("brake pads")
 
@@ -459,6 +499,7 @@ class TestRockAutoConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_playwright_disabled(self):
         from app.ingestion.rockauto import RockAutoConnector
+
         connector = RockAutoConnector()
         with patch("app.ingestion.rockauto.settings") as mock_settings:
             mock_settings.scrape_enabled = True
@@ -471,6 +512,7 @@ class TestRockAutoConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_scrape_disabled(self):
         from app.ingestion.rockauto import RockAutoConnector
+
         connector = RockAutoConnector()
         with patch("app.ingestion.rockauto.settings") as mock_settings:
             mock_settings.scrape_enabled = False
@@ -483,10 +525,12 @@ class TestRockAutoConnector:
 
 # --- PartsGeek tests ---
 
+
 class TestPartsGeekConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_playwright_disabled(self):
         from app.ingestion.partsgeek import PartsGeekConnector
+
         connector = PartsGeekConnector()
         with patch("app.ingestion.partsgeek.settings") as mock_settings:
             mock_settings.scrape_enabled = True
@@ -499,10 +543,12 @@ class TestPartsGeekConnector:
 
 # --- Amazon tests ---
 
+
 class TestAmazonConnector:
     @pytest.mark.asyncio
     async def test_scrape_parses_listings(self):
         from app.ingestion.amazon import AmazonConnector
+
         connector = AmazonConnector()
         mock_get_page = _make_mock_get_page(AMAZON_HTML)
 
@@ -512,6 +558,7 @@ class TestAmazonConnector:
             mock_settings.max_results_per_source = 20
             with patch("app.utils.browser.get_page", mock_get_page):
                 import app.utils.browser
+
                 with patch.object(app.utils.browser, "get_page", mock_get_page):
                     result = await connector._scrape("brake pads")
 
@@ -525,6 +572,7 @@ class TestAmazonConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_playwright_disabled(self):
         from app.ingestion.amazon import AmazonConnector
+
         connector = AmazonConnector()
         with patch("app.ingestion.amazon.settings") as mock_settings:
             mock_settings.scrape_enabled = True
@@ -537,6 +585,7 @@ class TestAmazonConnector:
     @pytest.mark.asyncio
     async def test_fallback_when_scrape_disabled(self):
         from app.ingestion.amazon import AmazonConnector
+
         connector = AmazonConnector()
         with patch("app.ingestion.amazon.settings") as mock_settings:
             mock_settings.scrape_enabled = False

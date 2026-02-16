@@ -4,16 +4,18 @@ PartsGeek connector.
 Uses Playwright to scrape JS-rendered search results from PartsGeek.
 Falls back to link generation when Playwright is unavailable or scraping fails.
 """
+
 import logging
-from typing import Dict, Any
+from typing import Any
 from urllib.parse import quote_plus
+
 from bs4 import BeautifulSoup
-from app.ingestion.base import BaseConnector
-from app.schemas.search import MarketListing, ExternalLink
+
 from app.config import settings
-from app.utils.scraping import parse_price
-from app.utils.normalization import clean_url
+from app.ingestion.base import BaseConnector
+from app.schemas.search import ExternalLink, MarketListing
 from app.utils.part_numbers import extract_part_numbers
+from app.utils.scraping import parse_price
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ class PartsGeekConnector(BaseConnector):
     def __init__(self):
         super().__init__("partsgeek")
 
-    async def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def search(self, query: str, **kwargs) -> dict[str, Any]:
         """Search PartsGeek. Scrapes with Playwright when enabled, otherwise generates links."""
         if not settings.scrape_enabled or not settings.playwright_enabled:
             return self._generate_links(query, kwargs)
@@ -37,7 +39,7 @@ class PartsGeekConnector(BaseConnector):
             logger.warning(f"PartsGeek scrape failed: {e}")
             return self._generate_links(query, kwargs)
 
-    async def _scrape(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def _scrape(self, query: str, **kwargs) -> dict[str, Any]:
         """Use Playwright to fetch and parse PartsGeek search results."""
         from app.utils.browser import get_page
 
@@ -67,16 +69,11 @@ class PartsGeekConnector(BaseConnector):
 
         for product in products:
             # Title
-            title_el = product.select_one(
-                ".product-name, .product-title, h3, h4, "
-                "[class*='title'], [class*='name'] a"
-            )
+            title_el = product.select_one(".product-name, .product-title, h3, h4, [class*='title'], [class*='name'] a")
             title = title_el.get_text(strip=True) if title_el else ""
 
             # Price
-            price_el = product.select_one(
-                ".price, .product-price, [class*='price'], .sale-price"
-            )
+            price_el = product.select_one(".price, .product-price, [class*='price'], .sale-price")
             price = parse_price(price_el.get_text(strip=True)) if price_el else 0.0
 
             # URL
@@ -104,9 +101,7 @@ class PartsGeekConnector(BaseConnector):
             brand = brand_el.get_text(strip=True) if brand_el else None
 
             # Part number
-            pn_el = product.select_one(
-                ".part-number, .sku, [class*='partNumber'], [class*='sku']"
-            )
+            pn_el = product.select_one(".part-number, .sku, [class*='partNumber'], [class*='sku']")
             part_num = pn_el.get_text(strip=True) if pn_el else ""
 
             if not title:
@@ -114,16 +109,18 @@ class PartsGeekConnector(BaseConnector):
 
             part_numbers = [part_num] if part_num else extract_part_numbers(title)
 
-            listings.append(MarketListing(
-                source="partsgeek",
-                title=title,
-                price=price,
-                condition="New",
-                url=product_url or url,
-                part_numbers=part_numbers,
-                brand=brand,
-                image_url=image_url,
-            ))
+            listings.append(
+                MarketListing(
+                    source="partsgeek",
+                    title=title,
+                    price=price,
+                    condition="New",
+                    url=product_url or url,
+                    part_numbers=part_numbers,
+                    brand=brand,
+                    image_url=image_url,
+                )
+            )
 
             if len(listings) >= settings.max_results_per_source:
                 break
@@ -135,7 +132,7 @@ class PartsGeekConnector(BaseConnector):
             "error": None,
         }
 
-    def _generate_links(self, query: str, kwargs: dict = None) -> Dict[str, Any]:
+    def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate PartsGeek search links (fallback)."""
         encoded = quote_plus(query)
         links = [
@@ -150,12 +147,14 @@ class PartsGeekConnector(BaseConnector):
         part_numbers = (kwargs or {}).get("part_numbers") or extract_part_numbers(query)
         for pn in part_numbers:
             encoded_pn = quote_plus(pn)
-            links.append(ExternalLink(
-                label=f"PartsGeek: {pn}",
-                url=f"https://www.partsgeek.com/search.html?query={encoded_pn}",
-                source="partsgeek",
-                category="new_parts",
-            ))
+            links.append(
+                ExternalLink(
+                    label=f"PartsGeek: {pn}",
+                    url=f"https://www.partsgeek.com/search.html?query={encoded_pn}",
+                    source="partsgeek",
+                    category="new_parts",
+                )
+            )
 
         return {
             "market_listings": [],

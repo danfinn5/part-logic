@@ -1,0 +1,72 @@
+domain,name,category,tags,notes
+rockauto.com,RockAuto,retailer,"new_aftermarket,wide_catalog",Huge catalog depth
+autozone.com,AutoZone,retailer,"new_aftermarket,local_pickup",National chain
+oreillyauto.com,O'Reilly Auto Parts,retailer,"new_aftermarket,local_pickup",National chain
+advanceautoparts.com,Advance Auto Parts,retailer,"new_aftermarket,local_pickup",National chain
+napaonline.com,NAPA Online,retailer,"new_aftermarket,pro_channel",Strong pro channel
+carparts.com,CarParts.com,retailer,"new_aftermarket",High volume
+1aauto.com,1A Auto,retailer,"new_aftermarket,install_content",Strong how-to content
+partsgeek.com,Parts Geek,retailer,"new_aftermarket",Aggregator-like retail
+autopartswarehouse.com,Auto Parts Warehouse,retailer,"new_aftermarket",Large catalog
+jcwhitney.com,JC Whitney,retailer,"new_aftermarket,accessories",Legacy brand
+summitracing.com,Summit Racing,retailer,"performance,new_aftermarket",Major performance anchor
+jegs.com,JEGS,retailer,"performance,new_aftermarket",Major performance anchor
+speedwaymotors.com,Speedway Motors,retailer,"performance,classic_hotrod",Hot rod + general
+tirerack.com,Tire Rack,retailer,"tires_wheels",Tires/wheels
+discounttire.com,Discount Tire,retailer,"tires_wheels",Tires/wheels
+simpletire.com,SimpleTire,retailer,"tires_wheels",Tires/wheels
+carid.com,CARiD,retailer,"accessories,body,lighting",Big accessories catalog
+autoanything.com,AutoAnything,retailer,"accessories",Accessories
+amazon.com,Amazon,marketplace,"new_aftermarket,marketplace",Mixed quality; counterfeit risk
+ebay.com,eBay,marketplace,"new_used,marketplace,global",Long-tail inventory
+facebook.com/marketplace,Facebook Marketplace,marketplace,"used_local,marketplace",Messy but huge
+craigslist.org,Craigslist,marketplace,"used_local,marketplace",Messy; occasional gems
+car-part.com,car-part.com,used_aggregator,"used,salvage_network,interchange",Core used-parts backbone
+lkqonline.com,LKQ Online,used_aggregator,"used,recycled_OE",Major recycled parts seller
+row52.com,Row52,used_aggregator,"pick_pull_inventory,used",Self-service inventory
+pullapart.com,Pull-A-Part,salvage_yard,"used,pick_pull",Yard inventory
+picknpull.com,Pick-n-Pull,salvage_yard,"used,pick_pull",Yard inventory
+upullandpay.com,U-Pull-&-Pay,salvage_yard,"used,pick_pull",Yard inventory
+tascaparts.com,TascaParts,oe_dealer,"new_oem,oem_dealer",Dealer storefront
+gmpartsdirect.com,GM Parts Direct,oe_dealer,"new_oem,gm_oem_dealer",Dealer storefront
+moparpartsgiant.com,Mopar Parts Giant,oe_dealer,"new_oem,mopar_oem_dealer",Dealer storefront
+fordpartsgiant.com,Ford Parts Giant,oe_dealer,"new_oem,ford_oem_dealer",Dealer storefront
+hondapartsnow.com,HondaPartsNow,oe_dealer,"new_oem,honda_oem_dealer",Dealer storefront
+toyotapartsdeal.com,Toyota Parts Deal,oe_dealer,"new_oem,toyota_oem_dealer",Dealer storefront
+lexuspartsnow.com,LexusPartsNow,oe_dealer,"new_oem,lexus_oem_dealer",Dealer storefront
+nissanpartsdeal.com,Nissan Parts Deal,oe_dealer,"new_oem,nissan_oem_dealer",Dealer storefront
+subarupartsdeal.com,Subaru Parts Deal,oe_dealer,"new_oem,subaru_oem_dealer",Dealer storefront
+fcpeuro.com,FCP Euro,retailer,"euro,oem_oe,new_aftermarket",Euro specialist
+ecstuning.com,ECS Tuning,retailer,"euro,performance,new_aftermarket",VAG + euro performance
+turnermotorsport.com,Turner Motorsport,retailer,"bmw,performance,new_aftermarket",BMW performance
+pelicanparts.com,Pelican Parts,retailer,"euro,porsche,repair_content",Euro + Porsche
+autohauzaz.com,AutohausAZ,retailer,"euro,budget,new_aftermarket",Euro budget
+eeuroparts.com,eEuroparts,retailer,"euro,new_aftermarket",Euro specialist
+bimmerworld.com,BimmerWorld,retailer,"bmw,track,performance",Track-focused BMW
+ipdusa.com,IPD,retailer,"volvo,specialist",Volvo specialist
+swedishcarparts.com,Swedish Car Parts,retailer,"volvo,new_used",Volvo specialist
+suncoastparts.com,Suncoast Porsche Parts,oe_dealer,"porsche,new_oem",Porsche dealer
+stoddard.com,Stoddard,retailer,"porsche,restoration",Classic Porsche restoration
+sierramadrecollection.com,Sierra Madre Collection,retailer,"porsche,restoration",Classic Porsche restoration
+design911.com,Design911,retailer,"porsche,uk_ship_to_us",Ships to US
+rosepassion.com,Rose Passion,retailer,"porsche,eu_ship_to_us",Ships to US
+kanter.com,Kanter Auto Products,retailer,"classic_restoration",Classic restoration
+steelerubber.com,Steele Rubber Products,retailer,"restoration,rubber_seals",Weatherstripping/seals
+yearone.com,YearOne,retailer,"restoration,muscle",Restoration
+classicindustries.com,Classic Industries,retailer,"restoration",Restoration
+nationalpartsdepot.com,National Parts Depot,retailer,"restoration",Restoration
+eastwood.com,Eastwood,retailer,"tools,paint_body",Paint/body supplies
+por15.com,POR-15,retailer,"paint_rust",Rust coatings
+mcmaster.com,McMaster-Carr,industrial,"fasteners,bearings,seals,materials",Industrial crossover
+grainger.com,Grainger,industrial,"mro,tools,consumables",Industrial MRO
+fastenal.com,Fastenal,industrial,"fasteners,hardware",Industrial hardware
+motion.com,Motion,industrial,"bearings,power_transmission",Industrial bearings
+applied.com,Applied Industrial,industrial,"bearings,power_transmission",Industrial bearings
+misumiusa.com,Misumi,industrial,"hardware,linear,bearings",Industrial components
+zoro.com,Zoro,industrial,"mro,tools",Industrial MRO
+digikey.com,Digi-Key,electronics,"connectors,sensors,electronics",Automotive electronics crossover
+mouser.com,Mouser,electronics,"connectors,sensors,electronics",Automotive electronics crossover
+waytekwire.com,Waytek Wire,retailer,"automotive_electrical,connectors,wire",Automotive electrical
+delcity.net,Del City,retailer,"automotive_electrical,wire",Automotive electrical
+audis4parts.com,AudiS4Parts,retailer,"audi,used_specialist",VAG used specialist
+hawkemotorsports.com,Hawke Motorsports,retailer,"performance_specialist",Example specialist shop

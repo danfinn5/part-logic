@@ -1,6 +1,7 @@
 """Tests for deduplication utilities."""
-from app.utils.deduplication import deduplicate_listings, deduplicate_links
-from app.schemas.search import MarketListing, ExternalLink
+
+from app.schemas.search import ExternalLink, MarketListing
+from app.utils.deduplication import deduplicate_links, deduplicate_listings
 
 
 class TestDeduplicateListings:

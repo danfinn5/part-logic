@@ -1,17 +1,22 @@
 """Tests for the search API endpoint."""
+
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
-from app.schemas.search import ExternalLink
 
 
 @pytest.fixture
 def mock_redis():
-    """Mock Redis and cross-reference enrichment."""
-    with patch("app.api.routes.search.get_cached_result", new_callable=AsyncMock, return_value=None), \
-         patch("app.api.routes.search.set_cached_result", new_callable=AsyncMock), \
-         patch("app.api.routes.search.enrich_with_cross_references", new_callable=AsyncMock, side_effect=lambda a: a):
+    """Mock Redis, cross-reference enrichment, and interchange."""
+    with (
+        patch("app.api.routes.search.get_cached_result", new_callable=AsyncMock, return_value=None),
+        patch("app.api.routes.search.set_cached_result", new_callable=AsyncMock),
+        patch("app.api.routes.search.enrich_with_cross_references", new_callable=AsyncMock, side_effect=lambda a: a),
+        patch("app.api.routes.search.build_interchange_group", new_callable=AsyncMock, return_value=None),
+    ):
         yield
 
 
@@ -65,9 +70,26 @@ async def test_search_queries_all_sources(mock_redis):
     data = response.json()
 
     queried_sources = {s["source"] for s in data["sources_queried"]}
-    expected = {"ebay", "rockauto", "row52", "carpart", "partsouq",
-                "ecstuning", "fcpeuro", "amazon", "partsgeek", "resources"}
-    assert queried_sources == expected
+    # Core connectors that should always be present
+    core_sources = {
+        "ebay",
+        "rockauto",
+        "row52",
+        "carpart",
+        "partsouq",
+        "ecstuning",
+        "fcpeuro",
+        "amazon",
+        "partsgeek",
+        "resources",
+    }
+    assert core_sources.issubset(queried_sources)
+    # New connectors should also be present
+    assert "autozone" in queried_sources
+    assert "oreilly" in queried_sources
+    assert "napa" in queried_sources
+    assert "lkq" in queried_sources
+    assert "advanceauto" in queried_sources
 
 
 @pytest.mark.asyncio

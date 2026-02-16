@@ -1,0 +1,18 @@
+domain,name,category,tags,notes
+car-part.com,car-part.com,interchange,"used,interchange,salvage_network",Interchange + inventory backbone
+lkqonline.com,LKQ Online,interchange,"used,recycled_OE",Used/recycled OE; partial interchange semantics
+realoem.com,RealOEM,epc,"bmw,diagrams,part_numbers",BMW diagram/PN lookup
+partsouq.com,Partsouq,epc_retail,"vin_lookup,multi_make,oem_catalog",EPC browsing + buy; VIN support varies
+amayama.com,Amayama,epc_retail,"multi_make,oem_catalog,international_shipping",EPC browsing + buy
+megazip.net,MegaZip,epc_retail,"multi_make,oem_catalog,international_shipping",EPC browsing + buy
+toyota.epc-data.com,EPC-Data Toyota,epc,"toyota,diagrams,part_numbers",Toyota EPC mirror-style
+parts.ford.com,Ford Parts (official),oem_catalog,"ford,official",Official OEM catalog/storefront
+parts.toyota.com,Toyota Parts (official),oem_catalog,"toyota,official",Official OEM catalog/storefront
+parts.lexus.com,Lexus Parts (official),oem_catalog,"lexus,official",Official OEM catalog/storefront
+parts.honda.com,Honda Parts (official),oem_catalog,"honda,official",Official OEM catalog/storefront
+parts.acura.com,Acura Parts (official),oem_catalog,"acura,official",Official OEM catalog/storefront
+parts.nissanusa.com,Nissan Parts (official),oem_catalog,"nissan,official",Official OEM catalog/storefront
+parts.subaru.com,Subaru Parts (official),oem_catalog,"subaru,official",Official OEM catalog/storefront
+parts.gm.com,GM Parts (official),oem_catalog,"gm,official",Official OEM catalog/storefront
+parts.mopar.com,Mopar Parts (official),oem_catalog,"mopar,official",Official OEM catalog/storefront
+parts.mbusa.com,Mercedes-Benz Parts (official),oem_catalog,"mercedes,official",Official OEM catalog/storefront
