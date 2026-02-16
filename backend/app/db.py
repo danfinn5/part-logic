@@ -101,7 +101,170 @@ async def _init_tables(db: aiosqlite.Connection):
             value TEXT NOT NULL,
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        -- Canonical vehicles (A)
+        CREATE TABLE IF NOT EXISTS vehicles (
+            vehicle_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            year INTEGER NOT NULL,
+            make TEXT NOT NULL,
+            model TEXT NOT NULL,
+            generation TEXT,
+            submodel TEXT,
+            trim TEXT,
+            body_style TEXT,
+            market TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_vehicles_make_model ON vehicles(make, model);
+        CREATE INDEX IF NOT EXISTS idx_vehicles_year ON vehicles(year);
+
+        -- Vehicle configs / trim-level detail (B)
+        CREATE TABLE IF NOT EXISTS vehicle_configs (
+            config_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vehicle_id INTEGER NOT NULL REFERENCES vehicles(vehicle_id),
+            engine_code TEXT,
+            engine_displacement_l REAL,
+            aspiration TEXT,
+            transmission_code TEXT,
+            drivetrain TEXT,
+            doors INTEGER,
+            vin_pattern TEXT,
+            build_date_start TEXT,
+            build_date_end TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_vehicle_configs_vehicle ON vehicle_configs(vehicle_id);
+
+        -- Vehicle aliases for backward compat + ingestion (C)
+        CREATE TABLE IF NOT EXISTS vehicle_aliases (
+            alias_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            alias_text TEXT NOT NULL,
+            alias_norm TEXT NOT NULL,
+            year INTEGER,
+            make_raw TEXT,
+            model_raw TEXT,
+            trim_raw TEXT,
+            vehicle_id INTEGER REFERENCES vehicles(vehicle_id),
+            config_id INTEGER REFERENCES vehicle_configs(config_id),
+            source_domain TEXT,
+            confidence INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_vehicle_aliases_norm_source
+            ON vehicle_aliases(alias_norm, source_domain);
+        CREATE INDEX IF NOT EXISTS idx_vehicle_aliases_vehicle ON vehicle_aliases(vehicle_id);
+        CREATE INDEX IF NOT EXISTS idx_vehicle_aliases_unlinked ON vehicle_aliases(vehicle_id) WHERE vehicle_id IS NULL;
+
+        -- Canonical parts (D)
+        CREATE TABLE IF NOT EXISTS parts (
+            part_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            part_type TEXT NOT NULL CHECK(part_type IN ('oem','aftermarket','used','universal')),
+            brand TEXT,
+            name TEXT,
+            description TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_parts_type_brand ON parts(part_type, brand);
+
+        -- Part numbers / SKU namespace (E)
+        CREATE TABLE IF NOT EXISTS part_numbers (
+            pn_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            part_id INTEGER NOT NULL REFERENCES parts(part_id),
+            namespace TEXT NOT NULL,
+            value TEXT NOT NULL,
+            value_norm TEXT NOT NULL,
+            source_domain TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_part_numbers_ns_value ON part_numbers(namespace, value_norm);
+        CREATE INDEX IF NOT EXISTS idx_part_numbers_part ON part_numbers(part_id);
+        CREATE INDEX IF NOT EXISTS idx_part_numbers_value_norm ON part_numbers(value_norm);
+
+        -- Supersessions (F)
+        CREATE TABLE IF NOT EXISTS supersessions (
+            supersession_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_pn_id INTEGER NOT NULL REFERENCES part_numbers(pn_id),
+            to_pn_id INTEGER NOT NULL REFERENCES part_numbers(pn_id),
+            effective_date TEXT,
+            notes TEXT,
+            source_domain TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_supersessions_from ON supersessions(from_pn_id);
+        CREATE INDEX IF NOT EXISTS idx_supersessions_to ON supersessions(to_pn_id);
+
+        -- Interchange groups (G)
+        CREATE TABLE IF NOT EXISTS interchange_groups (
+            group_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_type TEXT NOT NULL,
+            source_domain TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_interchange_groups_type ON interchange_groups(group_type);
+
+        -- Interchange members (H)
+        CREATE TABLE IF NOT EXISTS interchange_members (
+            group_id INTEGER NOT NULL REFERENCES interchange_groups(group_id),
+            pn_id INTEGER NOT NULL REFERENCES part_numbers(pn_id),
+            PRIMARY KEY (group_id, pn_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_interchange_members_pn ON interchange_members(pn_id);
+
+        -- Kits (I)
+        CREATE TABLE IF NOT EXISTS kits (
+            kit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kit_part_id INTEGER NOT NULL REFERENCES parts(part_id),
+            component_part_id INTEGER NOT NULL REFERENCES parts(part_id),
+            qty REAL,
+            notes TEXT,
+            source_domain TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_kits_kit ON kits(kit_part_id);
+        CREATE INDEX IF NOT EXISTS idx_kits_component ON kits(component_part_id);
+
+        -- Fitments (J)
+        CREATE TABLE IF NOT EXISTS fitments (
+            fitment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            part_id INTEGER NOT NULL REFERENCES parts(part_id),
+            vehicle_id INTEGER REFERENCES vehicles(vehicle_id),
+            config_id INTEGER REFERENCES vehicle_configs(config_id),
+            position TEXT,
+            qualifiers_json TEXT,
+            vin_range_start TEXT,
+            vin_range_end TEXT,
+            build_date_start TEXT,
+            build_date_end TEXT,
+            confidence INTEGER DEFAULT 100,
+            source_domain TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_fitments_part ON fitments(part_id);
+        CREATE INDEX IF NOT EXISTS idx_fitments_vehicle ON fitments(vehicle_id);
+        CREATE INDEX IF NOT EXISTS idx_fitments_config ON fitments(config_id);
+        CREATE INDEX IF NOT EXISTS idx_fitments_source ON fitments(source_domain);
     """)
+    await db.commit()
+    await _migrate_search_history_vehicle_columns(db)
+
+
+async def _migrate_search_history_vehicle_columns(db: aiosqlite.Connection) -> None:
+    """Add vehicle_id and config_id to search_history if missing (backward compat)."""
+    cursor = await db.execute("PRAGMA table_info(search_history)")
+    columns = [row[1] for row in await cursor.fetchall()]
+    if "vehicle_id" not in columns:
+        await db.execute("ALTER TABLE search_history ADD COLUMN vehicle_id INTEGER REFERENCES vehicles(vehicle_id)")
+    if "config_id" not in columns:
+        await db.execute(
+            "ALTER TABLE search_history ADD COLUMN config_id INTEGER REFERENCES vehicle_configs(config_id)"
+        )
     await db.commit()
 
 
@@ -122,15 +285,17 @@ async def record_search(
     has_interchange: bool = False,
     cached: bool = False,
     response_time_ms: int = None,
+    vehicle_id: int = None,
+    config_id: int = None,
 ) -> int:
-    """Record a search in history. Returns the row ID."""
+    """Record a search in history. Returns the row ID. vehicle_id/config_id from resolver when alias resolved."""
     db = await get_db()
     cursor = await db.execute(
         """INSERT INTO search_history
            (query, normalized_query, query_type, vehicle_hint, part_description,
             sort, market_listing_count, salvage_hit_count, external_link_count,
-            source_count, has_interchange, cached, response_time_ms, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            source_count, has_interchange, cached, response_time_ms, vehicle_id, config_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             query,
             normalized_query,
@@ -145,6 +310,8 @@ async def record_search(
             int(has_interchange),
             int(cached),
             response_time_ms,
+            vehicle_id,
+            config_id,
             datetime.now(UTC).isoformat(),
         ),
     )

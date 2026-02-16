@@ -56,9 +56,11 @@ class Settings(BaseSettings):
     community_cache_ttl: int = 604800  # 7 days
 
     # AI Provider Configuration
-    # Priority: OpenAI (cheapest) > Anthropic. Set whichever key you have.
+    # Priority: Gemini (free) > OpenAI (cheapest paid) > Anthropic. Set whichever key you have.
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.5-flash"  # Free tier: 500 RPD, great for structured JSON
     openai_api_key: str | None = None
-    openai_model: str = "gpt-4o-mini"  # Cheap and good for structured JSON
+    openai_model: str = "gpt-4.1-nano"  # Cheapest paid: ~$0.001/query
     anthropic_api_key: str | None = None
 
 

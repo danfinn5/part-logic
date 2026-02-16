@@ -13,8 +13,12 @@ const API_BASE = '/api';
 export async function searchParts(
   query: string,
   sort: SortOption = 'value',
+  vehicle?: { make?: string; model?: string; year?: string },
 ): Promise<SearchResponse> {
   const params = new URLSearchParams({ query: query.trim(), sort });
+  if (vehicle?.make) params.set('vehicle_make', vehicle.make);
+  if (vehicle?.model) params.set('vehicle_model', vehicle.model);
+  if (vehicle?.year) params.set('vehicle_year', vehicle.year);
   const response = await fetch(`${API_BASE}/search?${params}`);
   if (!response.ok) {
     throw new Error(`Search failed (HTTP ${response.status})`);

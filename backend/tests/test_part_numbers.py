@@ -1,4 +1,5 @@
 """Tests for part number extraction and normalization."""
+
 from app.utils.part_numbers import extract_part_numbers, normalize_part_number, normalize_query
 
 

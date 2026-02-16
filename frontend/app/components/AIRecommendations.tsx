@@ -195,14 +195,6 @@ export default function AIRecommendations({ analysis }: AIRecommendationsProps) 
           </div>
         </div>
       )}
-
-      {/* Expert notes */}
-      {analysis.notes && (
-        <div className="mt-4 card bg-blue-50/50 border-blue-200 p-4">
-          <h3 className="text-sm font-semibold text-blue-800 mb-1.5">Expert Notes</h3>
-          <p className="text-sm text-blue-700 leading-relaxed">{analysis.notes}</p>
-        </div>
-      )}
     </section>
   );
 }

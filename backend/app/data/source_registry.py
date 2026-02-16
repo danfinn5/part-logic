@@ -7,8 +7,9 @@ OEM catalogs, salvage yards, EPCs, industrial suppliers, etc.
 Each source has:
 - domain (unique key), name, category, tags, notes
 - source_type (buyable vs reference)
+- reference_kind (standards, vin_decode, oem_epc, service_info, tsb_recall, paint_trim, industrial_specs)
 - status (active/disabled), priority (for ranking)
-- crawler hints (supports_vin, supports_part_number_search, robots_policy, sitemap_url)
+- crawler hints (supports_vin, supports_part_number_search, supports_fitment, robots_policy, sitemap_url, api_available)
 """
 
 import json
@@ -105,6 +106,17 @@ def get_active_sources(
     return results
 
 
+REFERENCE_KINDS = (
+    "standards",
+    "vin_decode",
+    "oem_epc",
+    "service_info",
+    "tsb_recall",
+    "paint_trim",
+    "industrial_specs",
+)
+
+
 def upsert_source(
     domain: str,
     name: str,
@@ -112,21 +124,25 @@ def upsert_source(
     tags: list[str],
     notes: str = "",
     source_type: str = "buyable",
+    reference_kind: str | None = None,
     status: str = "active",
     priority: int = 50,
     supports_vin: bool = False,
     supports_part_number_search: bool = True,
+    supports_fitment: bool = False,
     robots_policy: str = "unknown",
     sitemap_url: str | None = None,
+    api_available: bool = False,
 ) -> dict:
     """Insert or update a source by domain (natural key)."""
     registry = _load_registry()
     domain = normalize_domain(domain)
     now = _now_iso()
+    if reference_kind and reference_kind not in REFERENCE_KINDS:
+        reference_kind = None
 
     existing = registry.get(domain)
     if existing:
-        # Update
         existing.update(
             {
                 "name": name,
@@ -134,18 +150,20 @@ def upsert_source(
                 "tags": tags,
                 "notes": notes,
                 "source_type": source_type,
+                "reference_kind": reference_kind,
                 "status": status,
                 "priority": priority,
                 "supports_vin": supports_vin,
                 "supports_part_number_search": supports_part_number_search,
+                "supports_fitment": supports_fitment,
                 "robots_policy": robots_policy,
                 "sitemap_url": sitemap_url,
+                "api_available": api_available,
                 "updated_at": now,
             }
         )
         source = existing
     else:
-        # Insert
         source = {
             "id": str(uuid.uuid4()),
             "domain": domain,
@@ -154,12 +172,15 @@ def upsert_source(
             "tags": tags,
             "notes": notes,
             "source_type": source_type,
+            "reference_kind": reference_kind,
             "status": status,
             "priority": priority,
             "supports_vin": supports_vin,
             "supports_part_number_search": supports_part_number_search,
+            "supports_fitment": supports_fitment,
             "robots_policy": robots_policy,
             "sitemap_url": sitemap_url,
+            "api_available": api_available,
             "created_at": now,
             "updated_at": now,
         }

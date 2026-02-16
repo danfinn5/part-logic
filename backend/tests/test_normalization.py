@@ -1,5 +1,6 @@
 """Tests for price, condition, and URL normalization."""
-from app.utils.normalization import normalize_price, normalize_condition, clean_url
+
+from app.utils.normalization import clean_url, normalize_condition, normalize_price
 
 
 class TestNormalizePrice:

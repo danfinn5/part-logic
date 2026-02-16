@@ -1,5 +1,6 @@
 """Tests for query analysis utilities."""
-from app.utils.query_analysis import analyze_query, QueryType
+
+from app.utils.query_analysis import QueryType, analyze_query
 
 
 class TestAnalyzeQuery:

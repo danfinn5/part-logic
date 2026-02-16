@@ -97,12 +97,13 @@ export default function AdminPage() {
               Manage parts sources for search and link generation
             </p>
           </div>
-          <a
-            href="/"
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-          >
-            &larr; Back to Search
-          </a>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500">Canonical:</span>
+            <a href="/admin/aliases" className="text-sm text-blue-600 hover:text-blue-800 font-medium">Vehicle Aliases</a>
+            <a href="/admin/parts" className="text-sm text-blue-600 hover:text-blue-800 font-medium">Part Numbers</a>
+            <a href="/admin/fitments" className="text-sm text-blue-600 hover:text-blue-800 font-medium">Fitment Inspector</a>
+            <a href="/" className="text-sm text-blue-600 hover:text-blue-800 font-medium">← Search</a>
+          </div>
         </div>
       </header>
 

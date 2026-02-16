@@ -5,16 +5,18 @@ Uses Playwright to scrape JS-rendered search results from Amazon.
 Falls back to link generation when Playwright is unavailable or scraping fails.
 Amazon has strong anti-bot protections, so fallback is expected to be common.
 """
+
 import logging
-from typing import Dict, Any
+from typing import Any
 from urllib.parse import quote_plus
+
 from bs4 import BeautifulSoup
-from app.ingestion.base import BaseConnector
-from app.schemas.search import MarketListing, ExternalLink
+
 from app.config import settings
-from app.utils.scraping import parse_price
-from app.utils.normalization import clean_url
+from app.ingestion.base import BaseConnector
+from app.schemas.search import ExternalLink, MarketListing
 from app.utils.part_numbers import extract_part_numbers
+from app.utils.scraping import parse_price
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class AmazonConnector(BaseConnector):
     def __init__(self):
         super().__init__("amazon")
 
-    async def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def search(self, query: str, **kwargs) -> dict[str, Any]:
         """Search Amazon Automotive. Scrapes with Playwright, falls back to links."""
         if not settings.scrape_enabled or not settings.playwright_enabled:
             return self._generate_links(query, kwargs)
@@ -38,7 +40,7 @@ class AmazonConnector(BaseConnector):
             logger.warning(f"Amazon scrape failed: {e}")
             return self._generate_links(query, kwargs)
 
-    async def _scrape(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def _scrape(self, query: str, **kwargs) -> dict[str, Any]:
         """Use Playwright to fetch and parse Amazon search results."""
         from app.utils.browser import get_page
 
@@ -61,10 +63,7 @@ class AmazonConnector(BaseConnector):
         listings = []
 
         # Amazon search results
-        products = soup.select(
-            "[data-component-type='s-search-result'], "
-            ".s-result-item[data-asin]"
-        )
+        products = soup.select("[data-component-type='s-search-result'], .s-result-item[data-asin]")
 
         for product in products:
             asin = product.get("data-asin", "")
@@ -80,10 +79,7 @@ class AmazonConnector(BaseConnector):
             title = title_el.get_text(strip=True) if title_el else ""
 
             # Price
-            price_el = product.select_one(
-                ".a-price .a-offscreen, .a-price-whole, "
-                "span.a-price span.a-offscreen"
-            )
+            price_el = product.select_one(".a-price .a-offscreen, .a-price-whole, span.a-price span.a-offscreen")
             price = parse_price(price_el.get_text(strip=True)) if price_el else 0.0
 
             # URL
@@ -107,16 +103,18 @@ class AmazonConnector(BaseConnector):
             if not title:
                 continue
 
-            listings.append(MarketListing(
-                source="amazon",
-                title=title,
-                price=price,
-                condition="New",
-                url=product_url or f"https://www.amazon.com/dp/{asin}",
-                part_numbers=extract_part_numbers(title),
-                image_url=image_url,
-                vendor=rating_text,  # Store rating in vendor field as extra info
-            ))
+            listings.append(
+                MarketListing(
+                    source="amazon",
+                    title=title,
+                    price=price,
+                    condition="New",
+                    url=product_url or f"https://www.amazon.com/dp/{asin}",
+                    part_numbers=extract_part_numbers(title),
+                    image_url=image_url,
+                    vendor=rating_text,  # Store rating in vendor field as extra info
+                )
+            )
 
             if len(listings) >= settings.max_results_per_source:
                 break
@@ -128,7 +126,7 @@ class AmazonConnector(BaseConnector):
             "error": None,
         }
 
-    def _generate_links(self, query: str, kwargs: dict = None) -> Dict[str, Any]:
+    def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate Amazon Automotive search links (fallback)."""
         encoded = quote_plus(query)
         links = [
@@ -143,12 +141,14 @@ class AmazonConnector(BaseConnector):
         part_numbers = (kwargs or {}).get("part_numbers") or extract_part_numbers(query)
         for pn in part_numbers:
             encoded_pn = quote_plus(pn)
-            links.append(ExternalLink(
-                label=f"Amazon: {pn}",
-                url=f"https://www.amazon.com/s?k={encoded_pn}&i=automotive-intl-ship",
-                source="amazon",
-                category="new_parts",
-            ))
+            links.append(
+                ExternalLink(
+                    label=f"Amazon: {pn}",
+                    url=f"https://www.amazon.com/s?k={encoded_pn}&i=automotive-intl-ship",
+                    source="amazon",
+                    category="new_parts",
+                )
+            )
 
         return {
             "market_listings": [],

@@ -4,13 +4,16 @@ Row52 salvage yard connector.
 Scrapes salvage inventory search results from Row52.
 Falls back to link generation on failure.
 """
+
 import logging
-from typing import Dict, Any
+from typing import Any
 from urllib.parse import quote_plus
+
 from bs4 import BeautifulSoup
-from app.ingestion.base import BaseConnector
-from app.schemas.search import SalvageHit, ExternalLink
+
 from app.config import settings
+from app.ingestion.base import BaseConnector
+from app.schemas.search import ExternalLink, SalvageHit
 from app.utils.scraping import fetch_html
 
 logger = logging.getLogger(__name__)
@@ -22,7 +25,7 @@ class Row52Connector(BaseConnector):
     def __init__(self):
         super().__init__("row52")
 
-    async def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def search(self, query: str, **kwargs) -> dict[str, Any]:
         """Search Row52. Scrapes results when enabled, otherwise generates links."""
         zip_code = kwargs.get("zip_code") or settings.carpart_default_zip or ""
 
@@ -37,7 +40,7 @@ class Row52Connector(BaseConnector):
             logger.warning(f"Row52 scrape failed: {e}")
             return self._generate_links(query, zip_code)
 
-    async def _scrape(self, query: str, zip_code: str) -> Dict[str, Any]:
+    async def _scrape(self, query: str, zip_code: str) -> dict[str, Any]:
         """Fetch and parse Row52 search results."""
         encoded = quote_plus(query)
         params = f"YMMorVIN={encoded}"
@@ -88,27 +91,30 @@ class Row52Connector(BaseConnector):
                     hit_url = f"https://row52.com{href}"
 
             # Date added
-            date_el = row.select_one('.col-md-1 strong')
             last_seen = None
             # Look for date in the row's text
-            date_cells = row.select('.col-md-1')
+            date_cells = row.select(".col-md-1")
             for cell in date_cells:
-                strong = cell.select_one('strong')
+                strong = cell.select_one("strong")
                 if strong:
                     text = strong.get_text(strip=True)
-                    if ',' in text and any(m in text for m in ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']):
+                    if "," in text and any(
+                        m in text
+                        for m in ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+                    ):
                         last_seen = text
                         break
 
-            salvage_hits.append(SalvageHit(
-                source="row52",
-                yard_name=yard_name,
-                yard_location=yard_location,
-                vehicle=vehicle,
-                url=hit_url or "https://row52.com",
-                last_seen=last_seen,
-            ))
+            salvage_hits.append(
+                SalvageHit(
+                    source="row52",
+                    yard_name=yard_name,
+                    yard_location=yard_location,
+                    vehicle=vehicle,
+                    url=hit_url or "https://row52.com",
+                    last_seen=last_seen,
+                )
+            )
 
             if len(salvage_hits) >= settings.max_results_per_source:
                 break
@@ -120,7 +126,7 @@ class Row52Connector(BaseConnector):
             "error": None,
         }
 
-    def _generate_links(self, query: str, zip_code: str) -> Dict[str, Any]:
+    def _generate_links(self, query: str, zip_code: str) -> dict[str, Any]:
         """Generate Row52 search links (fallback)."""
         encoded = quote_plus(query)
         params = f"YMMorVIN={encoded}"

@@ -3,16 +3,17 @@
 Tests the vehicle extraction, part description extraction, and
 async enrichment function that uses FCP Euro search results.
 """
+
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
 
 from app.utils.cross_reference import (
-    _extract_vehicle_from_title,
     _extract_part_description,
+    _extract_vehicle_from_title,
     enrich_with_cross_references,
 )
 from app.utils.query_analysis import QueryAnalysis, QueryType
-
 
 # --- Fake FCP Euro HTML for enrich_with_cross_references tests ---
 
@@ -52,6 +53,7 @@ FCPEURO_EMPTY_HTML = """
 
 
 # --- _extract_vehicle_from_title tests ---
+
 
 class TestExtractVehicleFromTitle:
     def test_porsche_with_model(self):
@@ -122,6 +124,7 @@ class TestExtractVehicleFromTitle:
 
 # --- _extract_part_description tests ---
 
+
 class TestExtractPartDescription:
     def test_brand_and_part_before_dash(self):
         result = _extract_part_description("Lemforder Engine Mount - Porsche 944")
@@ -182,6 +185,7 @@ class TestExtractPartDescription:
 
 
 # --- enrich_with_cross_references tests ---
+
 
 class TestEnrichWithCrossReferences:
     @pytest.mark.asyncio

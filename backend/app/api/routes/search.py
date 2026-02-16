@@ -35,6 +35,7 @@ from app.schemas.search import (
     SourceStatus,
 )
 from app.services.ai_advisor import AIAdvisorResult, get_ai_recommendations
+from app.services.vehicle_resolver import resolve_vehicle_alias
 from app.utils.brand_intelligence import build_brand_comparison
 from app.utils.cross_reference import enrich_with_cross_references
 from app.utils.deduplication import deduplicate_links, deduplicate_listings
@@ -227,6 +228,9 @@ async def search_parts(
     zip_code: str | None = Query(None, description="Zip code for location-based searches"),
     max_results: int = Query(20, ge=1, le=50, description="Max results per source"),
     sort: str = Query("relevance", description="Sort order: relevance, price_asc, price_desc, value"),
+    vehicle_make: str | None = Query(None, description="User's vehicle make (e.g. Volvo, BMW) for personalized AI"),
+    vehicle_model: str | None = Query(None, description="User's vehicle model (e.g. 940, E46)"),
+    vehicle_year: str | None = Query(None, description="User's vehicle year (e.g. 1995)"),
 ):
     """
     Search for parts across multiple sources in parallel.
@@ -256,7 +260,9 @@ async def search_parts(
     analysis = analyze_query(normalized_query)
 
     # --- AI Advisor (runs in parallel with everything else) ---
-    ai_task = asyncio.create_task(_safe_ai_analysis(query))
+    ai_task = asyncio.create_task(
+        _safe_ai_analysis(query, vehicle_make=vehicle_make, vehicle_model=vehicle_model, vehicle_year=vehicle_year)
+    )
 
     # --- Interchange Expansion (Phase 5) ---
     interchange_group: InterchangeGroup | None = None
@@ -454,6 +460,21 @@ async def search_parts(
 
     # Ranking / sorting (context-aware)
     market_listings = rank_listings(market_listings, normalized_query, sort, analysis)
+    # Put AI-recommended brands/part numbers at the top so they’re not buried below other brands
+    if ai_result and ai_result.recommendations and market_listings:
+        _recommended_brands = {r.brand.lower().strip() for r in ai_result.recommendations}
+        _recommended_pns = {r.part_number.upper().strip() for r in ai_result.recommendations}
+
+        def _ai_match(ml: MarketListing) -> bool:
+            if (ml.brand or "").lower() in _recommended_brands:
+                return True
+            if _recommended_pns and ml.part_numbers:
+                listing_pns = {p.upper().strip() for p in ml.part_numbers}
+                if _recommended_pns & listing_pns:
+                    return True
+            return False
+
+        market_listings.sort(key=lambda m: (0 if _ai_match(m) else 1))
     external_links = group_links_by_category(external_links)
 
     # --- Brand Intelligence ---
@@ -470,6 +491,19 @@ async def search_parts(
     # Sort groups based on user preference
     group_sort = "value" if sort == "value" else sort
     sorted_groups = sort_groups(raw_groups, group_sort)
+    # Put AI-recommended brands/part numbers at the top of the grouped list too
+    if ai_result and ai_result.recommendations and sorted_groups:
+        _rec_brands = {r.brand.lower().strip() for r in ai_result.recommendations}
+        _rec_pns = {r.part_number.upper().strip() for r in ai_result.recommendations}
+
+        def _group_ai_match(g: dict) -> bool:
+            if (g.get("brand") or "").lower() in _rec_brands:
+                return True
+            if (g.get("part_number") or "").upper() in _rec_pns:
+                return True
+            return False
+
+        sorted_groups.sort(key=lambda g: (0 if _group_ai_match(g) else 1))
     grouped_listings = [
         ListingGroup(
             brand=g["brand"],
@@ -520,6 +554,24 @@ async def search_parts(
     # Cache overall result
     await set_cached_result(overall_cache_key, response_data)
 
+    # --- Resolve vehicle alias when request provides make/model/year (canonical layer) ---
+    resolved_vehicle_id: int | None = None
+    resolved_config_id: int | None = None
+    if vehicle_year or vehicle_make or vehicle_model:
+        alias_parts = [
+            p
+            for p in (str(vehicle_year or "").strip(), (vehicle_make or "").strip(), (vehicle_model or "").strip())
+            if p
+        ]
+        alias_text = " ".join(alias_parts)
+        if alias_text:
+            try:
+                resolve_result = await resolve_vehicle_alias(alias_text, source_domain=None)
+                resolved_vehicle_id = resolve_result.vehicle_id
+                resolved_config_id = resolve_result.config_id
+            except Exception as e:
+                logger.warning("Vehicle resolver failed: %s", e)
+
     # --- Record to SQLite (async, non-blocking) ---
     response_time_ms = int((time.monotonic() - search_start) * 1000)
     try:
@@ -537,6 +589,8 @@ async def search_parts(
             has_interchange=interchange_group is not None,
             cached=False,
             response_time_ms=response_time_ms,
+            vehicle_id=resolved_vehicle_id,
+            config_id=resolved_config_id,
         )
         # Record price snapshots for all market listings
         if market_listings:
@@ -564,11 +618,21 @@ async def search_parts(
 # ── Helper functions ────────────────────────────────────────────────────
 
 
-async def _safe_ai_analysis(query: str) -> AIAdvisorResult | None:
+async def _safe_ai_analysis(
+    query: str,
+    vehicle_make: str | None = None,
+    vehicle_model: str | None = None,
+    vehicle_year: str | None = None,
+) -> AIAdvisorResult | None:
     """Run AI analysis with timeout and error handling."""
     try:
         return await asyncio.wait_for(
-            get_ai_recommendations(query),
+            get_ai_recommendations(
+                query,
+                vehicle_make=vehicle_make,
+                vehicle_model=vehicle_model,
+                vehicle_year=vehicle_year,
+            ),
             timeout=25,  # AI should be fast; don't block the whole search
         )
     except TimeoutError:

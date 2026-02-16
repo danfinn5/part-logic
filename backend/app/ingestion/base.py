@@ -1,8 +1,9 @@
 """
 Base connector interface for all ingestion sources.
 """
+
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any
 
 
 class BaseConnector(ABC):
@@ -12,7 +13,7 @@ class BaseConnector(ABC):
         self.source_name = source_name
 
     @abstractmethod
-    async def search(self, query: str, **kwargs) -> Dict[str, Any]:
+    async def search(self, query: str, **kwargs) -> dict[str, Any]:
         """
         Search for parts using the given query.
 

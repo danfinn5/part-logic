@@ -1,8 +1,8 @@
 """
 Data normalization utilities for unifying results from different sources.
 """
-from typing import Any, Dict, List
-from app.schemas.search import MarketListing, SalvageHit, ExternalLink
+
+from typing import Any
 
 
 def normalize_price(price_str: Any, currency: str = "USD") -> float:
@@ -12,10 +12,10 @@ def normalize_price(price_str: Any, currency: str = "USD") -> float:
     """
     if price_str is None:
         return 0.0
-    
-    if isinstance(price_str, (int, float)):
+
+    if isinstance(price_str, int | float):
         return float(price_str)
-    
+
     if isinstance(price_str, str):
         # Remove currency symbols, commas, whitespace
         cleaned = price_str.replace("$", "").replace(",", "").replace("€", "").replace("£", "").strip()
@@ -23,7 +23,7 @@ def normalize_price(price_str: Any, currency: str = "USD") -> float:
             return float(cleaned)
         except (ValueError, AttributeError):
             return 0.0
-    
+
     return 0.0
 
 
@@ -33,9 +33,9 @@ def normalize_condition(condition_str: Any) -> str:
     """
     if not condition_str:
         return "Unknown"
-    
+
     condition_lower = str(condition_str).lower()
-    
+
     # Map common variations
     if any(word in condition_lower for word in ["new", "brand new", "unused"]):
         return "New"
@@ -55,9 +55,9 @@ def clean_url(url: str) -> str:
     """
     if not url:
         return ""
-    
+
     url = url.strip()
-    
+
     # Ensure it starts with http:// or https://
     if url and not url.startswith(("http://", "https://")):
         # If it's a relative URL, we might want to handle it differently
@@ -67,5 +67,5 @@ def clean_url(url: str) -> str:
             pass
         else:
             url = f"https://{url}"
-    
+
     return url

@@ -1,14 +1,26 @@
 'use client';
 
-import { useState } from 'react';
-import { SearchResponse, SortOption, ViewMode } from './lib/types';
-import { searchParts } from './lib/api';
+import { useState, useEffect } from 'react';
+import { SearchResponse, SortOption, ViewMode, PriceTrend } from './lib/types';
+import { searchParts, getPriceTrends } from './lib/api';
+import AISummary from './components/AISummary';
 import AIRecommendations from './components/AIRecommendations';
 import ComparisonView from './components/ComparisonView';
 import ListingGrid from './components/ListingGrid';
 import SalvageSection from './components/SalvageSection';
-import WhereToBySection from './components/WhereToBuy';
+import ExternalLinksSection from './components/ExternalLinksSection';
 import SourceStatusBar from './components/SourceStatusBar';
+import LoadingSkeleton from './components/LoadingSkeleton';
+import PriceChart from './components/PriceChart';
+
+function getPrimaryPartNumber(data: SearchResponse | null): string | null {
+  if (!data) return null;
+  const ai = data.ai_analysis;
+  if (ai?.oem_part_numbers?.length) return ai.oem_part_numbers[0];
+  if (ai?.recommendations?.length) return ai.recommendations[0].part_number;
+  if (data.extracted_part_numbers?.length) return data.extracted_part_numbers[0];
+  return null;
+}
 
 export default function Home() {
   const [query, setQuery] = useState('');
@@ -17,13 +29,23 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SearchResponse | null>(null);
+  const [priceTrends, setPriceTrends] = useState<PriceTrend[]>([]);
+  const [priceChartLoading, setPriceChartLoading] = useState(false);
+  const [vehicleMake, setVehicleMake] = useState('');
+  const [vehicleModel, setVehicleModel] = useState('');
+  const [vehicleYear, setVehicleYear] = useState('');
+
+  const vehicleContext =
+    vehicleMake || vehicleModel || vehicleYear
+      ? { make: vehicleMake.trim() || undefined, model: vehicleModel.trim() || undefined, year: vehicleYear.trim() || undefined }
+      : undefined;
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await searchParts(query, sort);
+      const result = await searchParts(query, sort, vehicleContext);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -38,7 +60,7 @@ export default function Home() {
       setLoading(true);
       setError(null);
       try {
-        const result = await searchParts(pn, sort);
+        const result = await searchParts(pn, sort, vehicleContext);
         setData(result);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -48,13 +70,28 @@ export default function Home() {
     }, 0);
   };
 
+  // Fetch price history for the primary part number when results change
+  useEffect(() => {
+    const primary = data ? getPrimaryPartNumber(data) : null;
+    if (!primary) {
+      setPriceTrends([]);
+      return;
+    }
+    setPriceChartLoading(true);
+    getPriceTrends(primary, 90)
+      .then((trends) => setPriceTrends(trends || []))
+      .catch(() => setPriceTrends([]))
+      .finally(() => setPriceChartLoading(false));
+  }, [data]);
+
   const intel = data?.intelligence;
   const ai = data?.ai_analysis;
   const hasAI = ai && (ai.recommendations?.length ?? 0) > 0;
   const hasListings = data && data.results.market_listings.length > 0;
   const hasSalvage = data && data.results.salvage_hits.length > 0;
-  const hasLinks = data && data.results.external_links.length > 0;
-  const hasResults = hasAI || hasListings || hasSalvage || hasLinks;
+  const hasSummary = ai && (ai.notes || ai.vehicle_make || ai.part_type || (ai.oem_part_numbers?.length ?? 0) > 0);
+  const hasResults = hasAI || hasListings || hasSalvage;
+  const primaryPartNumber = data ? getPrimaryPartNumber(data) : null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -91,6 +128,35 @@ export default function Home() {
               ) : 'Search'}
             </button>
           </div>
+          <details className="mt-6 text-left max-w-2xl mx-auto">
+            <summary className="cursor-pointer text-sm text-slate-500 hover:text-slate-700">
+              My vehicle (optional — improves recommendations)
+            </summary>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <input
+                type="text"
+                value={vehicleYear}
+                onChange={(e) => setVehicleYear(e.target.value)}
+                placeholder="Year"
+                className="input-field !w-20"
+                maxLength={4}
+              />
+              <input
+                type="text"
+                value={vehicleMake}
+                onChange={(e) => setVehicleMake(e.target.value)}
+                placeholder="Make (e.g. Volvo, BMW)"
+                className="input-field flex-1 min-w-[120px]"
+              />
+              <input
+                type="text"
+                value={vehicleModel}
+                onChange={(e) => setVehicleModel(e.target.value)}
+                placeholder="Model (e.g. 940, E46)"
+                className="input-field flex-1 min-w-[120px]"
+              />
+            </div>
+          </details>
           <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-400">
             <span>Try:</span>
             {['11427566327', 'BMW E46 oil filter', 'Porsche 997 brake pads'].map((ex) => (
@@ -109,14 +175,40 @@ export default function Home() {
       {/* Compact search bar after results */}
       {data && (
         <div className="pt-6 pb-4">
-          <div className="flex gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-end">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Part number, description, or OEM number..."
-              className="input-field flex-1"
+              className="input-field flex-1 min-w-[200px]"
+            />
+            <span className="text-slate-400 text-sm hidden sm:inline">Vehicle:</span>
+            <input
+              type="text"
+              value={vehicleYear}
+              onChange={(e) => setVehicleYear(e.target.value)}
+              placeholder="Year"
+              className="input-field !w-16 !py-2"
+              maxLength={4}
+              title="Vehicle year"
+            />
+            <input
+              type="text"
+              value={vehicleMake}
+              onChange={(e) => setVehicleMake(e.target.value)}
+              placeholder="Make"
+              className="input-field !w-24 !py-2"
+              title="Vehicle make"
+            />
+            <input
+              type="text"
+              value={vehicleModel}
+              onChange={(e) => setVehicleModel(e.target.value)}
+              placeholder="Model"
+              className="input-field !w-24 !py-2"
+              title="Vehicle model"
             />
             <select
               value={sort}
@@ -146,6 +238,9 @@ export default function Home() {
         </div>
       )}
 
+      {/* Loading skeleton while searching */}
+      {loading && !data && <LoadingSkeleton />}
+
       {data && (
         <div className="pb-12 space-y-8">
           {/* Query metadata */}
@@ -165,30 +260,50 @@ export default function Home() {
             )}
           </div>
 
-          {/* AI Recommendations — the primary experience */}
+          {/* 1. Summary at top — vehicle, part, expert notes from Gemini */}
+          {hasSummary && ai && (
+            <AISummary analysis={ai} />
+          )}
+
+          {/* 2. AI Recommendations */}
           {hasAI && ai && (
             <AIRecommendations analysis={ai} />
           )}
 
-          {/* Warnings (collapsed, less prominent) */}
-          {data.warnings.length > 0 && (
-            <details className="text-sm">
-              <summary className="cursor-pointer text-slate-400 hover:text-slate-600 transition-colors">
-                {data.warnings.length} source note{data.warnings.length > 1 ? 's' : ''}
-              </summary>
-              <ul className="mt-2 ml-4 space-y-1 text-slate-400 text-xs list-disc">
-                {data.warnings.map((w, i) => <li key={i}>{w}</li>)}
-              </ul>
-            </details>
+          {/* 3. Price history for the part(s) found */}
+          {primaryPartNumber != null && (
+            <section>
+              <h2 className="section-title mb-4">
+                Price history
+                <span className="text-sm font-normal text-slate-400 ml-2 font-mono">
+                  {primaryPartNumber}
+                </span>
+              </h2>
+              {priceChartLoading && (
+                <div className="card p-8 text-center text-slate-500 text-sm">
+                  Loading price history…
+                </div>
+              )}
+              {!priceChartLoading && priceTrends.length > 0 && (
+                <PriceChart trends={priceTrends} />
+              )}
+              {!priceChartLoading && priceTrends.length === 0 && (
+                <div className="card p-6 text-center text-slate-500 text-sm">
+                  <p>No price history yet for this part.</p>
+                  <p className="mt-1">
+                    There isn’t a CamelCamelCamel-style tracker for car parts; our chart fills in as you and others run searches.
+                  </p>
+                </div>
+              )}
+            </section>
           )}
 
-          {/* Results section */}
+          {/* 4. Part listings only — real product links, no generic “search here” links */}
           {hasListings && (
             <section>
-              {/* View toggle */}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="section-title">
-                  Price Comparison
+                  Part listings
                   <span className="text-sm font-normal text-slate-400 ml-2">
                     {data.results.market_listings.length} listings from {new Set(data.results.market_listings.map(l => l.source)).size} sources
                   </span>
@@ -226,11 +341,25 @@ export default function Home() {
             </section>
           )}
 
-          {/* Salvage */}
+          {/* Salvage (when relevant, e.g. not consumables) */}
           {hasSalvage && <SalvageSection hits={data.results.salvage_hits} />}
 
-          {/* Where to Buy — redesigned external links */}
-          {hasLinks && <WhereToBySection links={data.results.external_links} />}
+          {/* External links to other sources */}
+          {data.results.external_links.length > 0 && (
+            <ExternalLinksSection links={data.results.external_links} />
+          )}
+
+          {/* Warnings (collapsed) */}
+          {data.warnings.length > 0 && (
+            <details className="text-sm">
+              <summary className="cursor-pointer text-slate-400 hover:text-slate-600 transition-colors">
+                {data.warnings.length} source note{data.warnings.length > 1 ? 's' : ''}
+              </summary>
+              <ul className="mt-2 ml-4 space-y-1 text-slate-400 text-xs list-disc">
+                {data.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </details>
+          )}
 
           {/* No results */}
           {!hasResults && (
@@ -241,7 +370,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Source status */}
           <SourceStatusBar sources={data.sources_queried} />
         </div>
       )}

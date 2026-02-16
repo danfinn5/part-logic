@@ -81,7 +81,7 @@ When given a parts search query, analyze it and return a JSON object with this E
       "reason": "Low-quality filter media. Known for cardboard endcaps that can deteriorate. Widely criticized in BMW community."
     }
   ],
-  "notes": "BMW E46 uses a cartridge-style oil filter (not spin-on). Change every 7,500 miles with 7 quarts of 5W-30 synthetic. Always replace the O-ring on the filter housing cap.",
+  "notes": "Mann and Mahle are considered superior: both are OEM suppliers to BMW with identical quality to dealer parts. Avoid Fram and store brands (poor media, cardboard endcaps). BMW E46 uses a cartridge-style oil filter (not spin-on). Change every 7,500 miles with 7 quarts of 5W-30 synthetic; always replace the O-ring on the filter housing cap.",
   "relevant_makes": ["BMW"]
 }
 
@@ -90,7 +90,7 @@ Rules:
 2. Include specific part numbers that can be searched on retailer sites.
 3. The "grade" field must be one of: "best_overall", "also_great", "budget_pick", "performance", "value_pick"
 4. Include the "avoid" array with brands/products that have known quality issues for this application.
-5. The "notes" field should include practical maintenance tips.
+5. The "notes" field MUST be a short summary (2–4 sentences) that includes: (a) which brands are considered superior for this part and why (OEM vs aftermarket, enthusiast consensus), (b) practical maintenance or installation tips, (c) part-specific guidance where relevant (e.g. for oil filters: recommended oil type and change interval; for sensors: calibration or failure modes).
 6. "relevant_makes" should list which car makes these parts are for (used to filter search results).
 7. estimated_price_low and estimated_price_high should be realistic USD prices.
 8. "best_retailers" should list 2-4 specific stores known to carry this brand/part.
@@ -204,8 +204,10 @@ def _get_provider() -> str | None:
     """
     Determine which AI provider to use.
 
-    Priority: OpenAI (cheapest) > Anthropic > None.
+    Priority: Gemini (free tier) > OpenAI (cheapest paid) > Anthropic > None.
     """
+    if settings.gemini_api_key:
+        return "gemini"
     if settings.openai_api_key:
         return "openai"
     if settings.anthropic_api_key:
@@ -213,35 +215,100 @@ def _get_provider() -> str | None:
     return None
 
 
-async def get_ai_recommendations(query: str) -> AIAdvisorResult:
+def _user_message(query: str, vehicle_make: str | None, vehicle_model: str | None, vehicle_year: str | None) -> str:
+    """Build the user prompt, optionally including vehicle context for personalization."""
+    parts = [f'Analyze this auto parts search query and provide recommendations: "{query}"']
+    if vehicle_make or vehicle_model or vehicle_year:
+        v = " ".join(filter(None, [vehicle_year, vehicle_make, vehicle_model]))
+        parts.append(f"The user's vehicle (use for fit and recommendations): {v}.")
+    return " ".join(parts)
+
+
+async def get_ai_recommendations(
+    query: str,
+    vehicle_make: str | None = None,
+    vehicle_model: str | None = None,
+    vehicle_year: str | None = None,
+) -> AIAdvisorResult:
     """
     Call the AI advisor to analyze a parts search query.
 
+    Optionally pass the user's vehicle make/model/year for personalized notes.
     Automatically selects the best available provider.
-    Returns structured recommendations even if no API key is configured
-    (falls back to empty result with error message).
     """
     if not settings.ai_synthesis_enabled:
         return AIAdvisorResult(error="AI synthesis is disabled")
 
     provider = _get_provider()
     if not provider:
-        return AIAdvisorResult(error="No AI API key configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env")
+        return AIAdvisorResult(
+            error="No AI API key configured. Set GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY in .env"
+        )
 
+    user_msg = _user_message(query, vehicle_make, vehicle_model, vehicle_year)
     try:
-        if provider == "openai":
-            return await _call_openai(query)
+        if provider == "gemini":
+            return await _call_gemini(user_msg)
+        elif provider == "openai":
+            return await _call_openai(user_msg)
         else:
-            return await _call_anthropic(query)
+            return await _call_anthropic(user_msg)
     except Exception as e:
         logger.error(f"AI advisor ({provider}) failed: {e}")
         return AIAdvisorResult(error=str(e))
 
 
+# ── Gemini provider (free tier) ──────────────────────────────────────────
+
+
+async def _call_gemini(user_message: str) -> AIAdvisorResult:
+    """Call Google Gemini REST API and parse the structured JSON response."""
+    model = settings.gemini_model
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            url,
+            headers={
+                "x-goog-api-key": settings.gemini_api_key,
+                "Content-Type": "application/json",
+            },
+            json={
+                "contents": [{"parts": [{"text": f"{SYSTEM_PROMPT}\n\n---\n\n{user_message}"}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "temperature": 0.3,
+                    "maxOutputTokens": 2000,
+                },
+            },
+        )
+
+    if response.status_code != 200:
+        error_text = response.text[:500]
+        logger.error(f"Gemini API error {response.status_code}: {error_text}")
+        return AIAdvisorResult(error=f"AI API error: HTTP {response.status_code}")
+
+    data = response.json()
+    candidates = data.get("candidates", [])
+    if not candidates:
+        return AIAdvisorResult(error="Empty AI response")
+
+    # Extract text from Gemini response format
+    parts = candidates[0].get("content", {}).get("parts", [])
+    text = parts[0].get("text", "") if parts else ""
+
+    usage = data.get("usageMetadata", {})
+    logger.info(
+        f"Gemini ({model}): {usage.get('promptTokenCount', '?')} prompt + "
+        f"{usage.get('candidatesTokenCount', '?')} completion tokens"
+    )
+    return _parse_ai_response(text)
+
+
 # ── OpenAI provider ─────────────────────────────────────────────────────
 
 
-async def _call_openai(query: str) -> AIAdvisorResult:
+async def _call_openai(user_message: str) -> AIAdvisorResult:
     """Call OpenAI Chat Completions API and parse the structured response."""
     model = settings.openai_model
 
@@ -259,10 +326,7 @@ async def _call_openai(query: str) -> AIAdvisorResult:
                 "response_format": {"type": "json_object"},
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": f'Analyze this auto parts search query and provide recommendations: "{query}"',
-                    },
+                    {"role": "user", "content": user_message},
                 ],
             },
         )
@@ -289,7 +353,7 @@ async def _call_openai(query: str) -> AIAdvisorResult:
 # ── Anthropic provider ──────────────────────────────────────────────────
 
 
-async def _call_anthropic(query: str) -> AIAdvisorResult:
+async def _call_anthropic(user_message: str) -> AIAdvisorResult:
     """Call Anthropic Messages API and parse the structured response."""
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
@@ -303,12 +367,7 @@ async def _call_anthropic(query: str) -> AIAdvisorResult:
                 "model": "claude-sonnet-4-20250514",
                 "max_tokens": 2000,
                 "system": SYSTEM_PROMPT,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f'Analyze this auto parts search query and provide recommendations: "{query}"',
-                    }
-                ],
+                "messages": [{"role": "user", "content": user_message}],
             },
         )
 
