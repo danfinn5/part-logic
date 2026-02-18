@@ -156,3 +156,108 @@ async def get_pn_by_namespace_value(namespace: str, value_norm: str) -> dict | N
     )
     row = await cursor.fetchone()
     return dict(row) if row else None
+
+
+async def ingest_fitment_from_listing(
+    part_number: str,
+    brand: str | None,
+    fitment_vehicles: list[dict],
+    source_domain: str = "fcpeuro.com",
+) -> int:
+    """
+    Ingest fitment data from a listing. fitment_vehicles is a list of
+    dicts with keys: year, make, model. Creates parts/part_numbers if needed
+    and links fitments. Returns number of fitments created.
+    """
+    db = await get_db()
+    pn_norm = part_number_value_norm(part_number)
+
+    # Find or create part_number
+    cursor = await db.execute("SELECT pn_id, part_id FROM part_numbers WHERE value_norm = ? LIMIT 1", (pn_norm,))
+    row = await cursor.fetchone()
+
+    if row:
+        part_id = row[1]
+    else:
+        # Create part
+        part_type = (
+            "oem" if brand and brand.upper() in ("BMW", "PORSCHE", "VOLVO", "AUDI", "VW", "MERCEDES") else "aftermarket"
+        )
+        cursor = await db.execute(
+            """INSERT INTO parts (part_type, brand, name, created_at, updated_at)
+               VALUES (?, ?, ?, datetime('now'), datetime('now'))""",
+            (part_type, brand, part_number),
+        )
+        part_id = cursor.lastrowid
+        # Create part_number
+        await db.execute(
+            """INSERT OR IGNORE INTO part_numbers (part_id, namespace, value, value_norm, source_domain, created_at)
+               VALUES (?, 'manufacturer', ?, ?, ?, datetime('now'))""",
+            (part_id, part_number, pn_norm, source_domain),
+        )
+
+    count = 0
+    for v in fitment_vehicles:
+        year = v.get("year")
+        make = v.get("make")
+        model = v.get("model")
+        if not (year and make and model):
+            continue
+
+        # Find or create vehicle
+        cursor = await db.execute(
+            "SELECT vehicle_id FROM vehicles WHERE year = ? AND LOWER(TRIM(make)) = LOWER(?) AND LOWER(TRIM(model)) = LOWER(?) LIMIT 1",
+            (year, make.strip(), model.strip()),
+        )
+        vrow = await cursor.fetchone()
+        if vrow:
+            vehicle_id = vrow[0]
+        else:
+            cursor = await db.execute(
+                """INSERT INTO vehicles (year, make, model, created_at, updated_at)
+                   VALUES (?, ?, ?, datetime('now'), datetime('now'))""",
+                (year, make.strip(), model.strip()),
+            )
+            vehicle_id = cursor.lastrowid
+
+        # Check if fitment already exists
+        cursor = await db.execute(
+            "SELECT fitment_id FROM fitments WHERE part_id = ? AND vehicle_id = ? LIMIT 1",
+            (part_id, vehicle_id),
+        )
+        if not await cursor.fetchone():
+            await db.execute(
+                """INSERT INTO fitments (part_id, vehicle_id, confidence, source_domain, created_at, updated_at)
+                   VALUES (?, ?, 80, ?, datetime('now'), datetime('now'))""",
+                (part_id, vehicle_id, source_domain),
+            )
+            count += 1
+
+    await db.commit()
+    return count
+
+
+async def get_fitments_for_part_numbers(part_numbers: list[str], vehicle_id: int) -> dict[str, str]:
+    """
+    Check fitments for a list of part numbers against a specific vehicle.
+    Returns dict of part_number -> fitment_status ('confirmed_fit', 'likely_fit', 'unknown').
+    """
+    db = await get_db()
+    result: dict[str, str] = {}
+
+    for pn in part_numbers:
+        pn_norm = part_number_value_norm(pn)
+        cursor = await db.execute(
+            """SELECT f.confidence
+               FROM fitments f
+               JOIN part_numbers pn ON f.part_id = pn.part_id
+               WHERE pn.value_norm = ? AND f.vehicle_id = ?
+               LIMIT 1""",
+            (pn_norm, vehicle_id),
+        )
+        row = await cursor.fetchone()
+        if row:
+            confidence = row[0] or 0
+            result[pn] = "confirmed_fit" if confidence >= 80 else "likely_fit"
+
+    return result

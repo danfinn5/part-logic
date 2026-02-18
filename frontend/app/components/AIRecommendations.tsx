@@ -48,7 +48,7 @@ function RecommendationCard({ rec }: { rec: AIRecommendation }) {
         <span className={`badge ${tier.color}`}>
           {tier.label}
         </span>
-        <span className="ml-auto text-sm font-bold text-slate-900">
+        <span className="ml-auto text-xs sm:text-sm font-bold text-slate-900">
           ${rec.estimated_price_low.toFixed(0)}&ndash;${rec.estimated_price_high.toFixed(0)}
         </span>
       </div>

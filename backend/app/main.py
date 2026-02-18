@@ -11,6 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import search, sources
 from app.api.routes.canonical import router as canonical_router
 from app.api.routes.history import router as history_router
+from app.api.routes.saved_searches import router as saved_searches_router
+from app.api.routes.vin import router as vin_router
 from app.config import settings
 from app.db import close_db, get_db
 
@@ -72,6 +74,8 @@ app.include_router(search.router)
 app.include_router(sources.router)
 app.include_router(canonical_router)
 app.include_router(history_router)
+app.include_router(vin_router)
+app.include_router(saved_searches_router)
 
 
 @app.get("/")
@@ -87,6 +91,9 @@ async def root():
             "history": "/history/searches",
             "price_history": "/history/prices",
             "canonical": "/canonical",
+            "vin_decode": "/vin/decode?vin=...",
+            "saved_searches": "/saved/searches",
+            "price_alerts": "/saved/alerts",
             "docs": "/docs",
         },
     }

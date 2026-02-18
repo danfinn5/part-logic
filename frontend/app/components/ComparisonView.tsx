@@ -106,7 +106,7 @@ export default function ComparisonView({ groups }: ComparisonViewProps) {
                       } transition-colors`}
                     >
                       {/* Source icon + name */}
-                      <div className="flex items-center gap-2 w-28 flex-shrink-0">
+                      <div className="flex items-center gap-2 w-20 sm:w-28 flex-shrink-0">
                         <img
                           src={`https://www.google.com/s2/favicons?domain=${SOURCE_ICONS[offer.source] || offer.source}&sz=16`}
                           alt=""
@@ -115,6 +115,12 @@ export default function ComparisonView({ groups }: ComparisonViewProps) {
                           className="flex-shrink-0 opacity-80"
                         />
                         <span className="text-xs text-gray-600 capitalize truncate">{offer.source}</span>
+                        {offer.fitment_status === 'confirmed_fit' && (
+                          <span className="px-1 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-medium flex-shrink-0" title="Fits your vehicle">Fits</span>
+                        )}
+                        {offer.fitment_status === 'likely_fit' && (
+                          <span className="px-1 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-medium flex-shrink-0" title="Likely fits your vehicle">Likely</span>
+                        )}
                       </div>
 
                       {/* Title (truncated) */}
@@ -122,7 +128,7 @@ export default function ComparisonView({ groups }: ComparisonViewProps) {
                         href={offer.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 min-w-0 text-xs text-blue-600 hover:text-blue-800 truncate no-underline"
+                        className="flex-1 min-w-0 text-[11px] sm:text-xs text-blue-600 hover:text-blue-800 truncate no-underline"
                         title={offer.title}
                       >
                         {offer.title}
@@ -130,13 +136,13 @@ export default function ComparisonView({ groups }: ComparisonViewProps) {
 
                       {/* Condition */}
                       {offer.condition && (
-                        <span className="text-[11px] text-gray-400 w-16 text-center flex-shrink-0">
+                        <span className="text-[11px] text-gray-400 w-16 text-center flex-shrink-0 hidden sm:block">
                           {offer.condition}
                         </span>
                       )}
 
                       {/* Price */}
-                      <div className="text-right flex-shrink-0 w-32">
+                      <div className="text-right flex-shrink-0 w-auto sm:w-32">
                         <span className={`font-semibold ${isBest ? 'text-green-700' : 'text-gray-900'}`}>
                           ${offer.price.toFixed(2)}
                         </span>

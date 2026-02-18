@@ -51,6 +51,16 @@ export default function ListingCard({ listing }: ListingCardProps) {
               via {listing.matched_interchange}
             </span>
           )}
+          {listing.fitment_status === 'confirmed_fit' && (
+            <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
+              Fits your vehicle
+            </span>
+          )}
+          {listing.fitment_status === 'likely_fit' && (
+            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
+              Likely fits
+            </span>
+          )}
         </div>
       </div>
     </div>

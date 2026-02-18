@@ -250,6 +250,41 @@ async def _init_tables(db: aiosqlite.Connection):
         CREATE INDEX IF NOT EXISTS idx_fitments_vehicle ON fitments(vehicle_id);
         CREATE INDEX IF NOT EXISTS idx_fitments_config ON fitments(config_id);
         CREATE INDEX IF NOT EXISTS idx_fitments_source ON fitments(source_domain);
+
+        -- Saved searches (Phase 6F)
+        CREATE TABLE IF NOT EXISTS saved_searches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            query TEXT NOT NULL,
+            normalized_query TEXT NOT NULL,
+            vehicle_make TEXT,
+            vehicle_model TEXT,
+            vehicle_year TEXT,
+            vin TEXT,
+            sort TEXT DEFAULT 'value',
+            price_threshold REAL,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_saved_searches_query ON saved_searches(normalized_query);
+        CREATE INDEX IF NOT EXISTS idx_saved_searches_active ON saved_searches(is_active);
+
+        -- Price alerts (Phase 6F)
+        CREATE TABLE IF NOT EXISTS price_alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            saved_search_id INTEGER REFERENCES saved_searches(id) ON DELETE CASCADE,
+            part_number TEXT,
+            brand TEXT,
+            target_price REAL NOT NULL,
+            current_lowest REAL,
+            triggered INTEGER DEFAULT 0,
+            triggered_at TEXT,
+            source TEXT,
+            url TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_price_alerts_search ON price_alerts(saved_search_id);
+        CREATE INDEX IF NOT EXISTS idx_price_alerts_active ON price_alerts(triggered) WHERE triggered = 0;
     """)
     await db.commit()
     await _migrate_search_history_vehicle_columns(db)
@@ -523,3 +558,113 @@ async def set_preference(key: str, value: str):
         (key, value, value),
     )
     await db.commit()
+
+
+# ─── Saved Searches ─────────────────────────────────────────────────
+
+
+async def save_search(
+    query: str,
+    normalized_query: str,
+    vehicle_make: str = None,
+    vehicle_model: str = None,
+    vehicle_year: str = None,
+    vin: str = None,
+    sort: str = "value",
+    price_threshold: float = None,
+) -> int:
+    """Save a search. Returns the row ID."""
+    db = await get_db()
+    cursor = await db.execute(
+        """INSERT INTO saved_searches
+           (query, normalized_query, vehicle_make, vehicle_model, vehicle_year,
+            vin, sort, price_threshold, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))""",
+        (query, normalized_query, vehicle_make, vehicle_model, vehicle_year, vin, sort, price_threshold),
+    )
+    await db.commit()
+    return cursor.lastrowid
+
+
+async def get_saved_searches(active_only: bool = True) -> list[dict]:
+    """Get saved searches."""
+    db = await get_db()
+    if active_only:
+        cursor = await db.execute("SELECT * FROM saved_searches WHERE is_active = 1 ORDER BY created_at DESC")
+    else:
+        cursor = await db.execute("SELECT * FROM saved_searches ORDER BY created_at DESC")
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
+async def delete_saved_search(search_id: int) -> bool:
+    """Delete a saved search and its alerts. Returns True if found."""
+    db = await get_db()
+    cursor = await db.execute("DELETE FROM saved_searches WHERE id = ?", (search_id,))
+    await db.commit()
+    return cursor.rowcount > 0
+
+
+# ─── Price Alerts ────────────────────────────────────────────────────
+
+
+async def create_price_alert(
+    saved_search_id: int,
+    target_price: float,
+    part_number: str = None,
+    brand: str = None,
+) -> int:
+    """Create a price alert. Returns the row ID."""
+    db = await get_db()
+    cursor = await db.execute(
+        """INSERT INTO price_alerts
+           (saved_search_id, part_number, brand, target_price, created_at)
+           VALUES (?, ?, ?, ?, datetime('now'))""",
+        (saved_search_id, part_number, brand, target_price),
+    )
+    await db.commit()
+    return cursor.lastrowid
+
+
+async def get_pending_alerts() -> list[dict]:
+    """Get all untriggered price alerts."""
+    db = await get_db()
+    cursor = await db.execute(
+        """SELECT pa.*, ss.query, ss.normalized_query
+           FROM price_alerts pa
+           JOIN saved_searches ss ON pa.saved_search_id = ss.id
+           WHERE pa.triggered = 0 AND ss.is_active = 1
+           ORDER BY pa.created_at DESC"""
+    )
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
+async def get_alerts_for_search(saved_search_id: int) -> list[dict]:
+    """Get alerts for a specific saved search."""
+    db = await get_db()
+    cursor = await db.execute(
+        "SELECT * FROM price_alerts WHERE saved_search_id = ? ORDER BY created_at DESC",
+        (saved_search_id,),
+    )
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
+async def trigger_alert(
+    alert_id: int,
+    current_lowest: float,
+    source: str = None,
+    url: str = None,
+) -> bool:
+    """Mark an alert as triggered. Returns True if updated."""
+    db = await get_db()
+    cursor = await db.execute(
+        """UPDATE price_alerts
+           SET triggered = 1, triggered_at = datetime('now'),
+               current_lowest = ?, source = ?, url = ?
+           WHERE id = ? AND triggered = 0""",
+        (current_lowest, source, url, alert_id),
+    )
+    await db.commit()
+    return cursor.rowcount > 0

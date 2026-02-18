@@ -23,6 +23,7 @@ class MarketListing(BaseModel):
     shipping_cost: float | None = None
     listing_type: str | None = None  # "auction", "buy_it_now", "classified"
     matched_interchange: str | None = None  # which interchange PN this matched
+    fitment_status: str | None = None  # "confirmed_fit", "likely_fit", or None
 
 
 class SalvageHit(BaseModel):
@@ -119,6 +120,7 @@ class Offer(BaseModel):
     title: str
     image_url: str | None = None
     value_score: float = 0.0
+    fitment_status: str | None = None
 
 
 class ListingGroup(BaseModel):
