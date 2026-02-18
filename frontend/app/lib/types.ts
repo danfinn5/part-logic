@@ -12,6 +12,7 @@ export interface MarketListing {
   shipping_cost?: number | null;
   listing_type?: string | null;
   matched_interchange?: string | null;
+  fitment_status?: string | null;
 }
 
 export interface SalvageHit {
@@ -84,6 +85,7 @@ export interface Offer {
   title: string;
   image_url?: string | null;
   value_score: number;
+  fitment_status?: string | null;
 }
 
 export interface ListingGroup {
@@ -154,6 +156,48 @@ export interface AIAnalysis {
   notes?: string | null;
   relevant_makes?: string[];
   error?: string | null;
+}
+
+export interface VINDecodeResult {
+  vin: string;
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  trim: string | null;
+  engine_displacement_l: number | null;
+  engine_code: string | null;
+  drive_type: string | null;
+  body_class: string | null;
+  error: string | null;
+}
+
+export interface SavedSearch {
+  id: number;
+  query: string;
+  normalized_query: string;
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  vehicle_year?: string | null;
+  vin?: string | null;
+  sort: string;
+  price_threshold?: number | null;
+  is_active: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PriceAlert {
+  id: number;
+  saved_search_id: number;
+  part_number?: string | null;
+  brand?: string | null;
+  target_price: number;
+  current_lowest?: number | null;
+  triggered: number;
+  triggered_at?: string | null;
+  source?: string | null;
+  url?: string | null;
+  created_at: string;
 }
 
 export type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'value';

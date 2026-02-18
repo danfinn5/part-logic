@@ -23,6 +23,7 @@ from app.schemas.search import (
     AIRecommendation,
     BrandSummary,
     BuyLink,
+    CommunitySource,
     ExternalLink,
     InterchangeInfo,
     ListingGroup,
@@ -35,6 +36,8 @@ from app.schemas.search import (
     SourceStatus,
 )
 from app.services.ai_advisor import AIAdvisorResult, get_ai_recommendations
+from app.services.community import CommunityThread, fetch_community_discussions
+from app.services.fitment_checker import check_fitments
 from app.services.vehicle_resolver import resolve_vehicle_alias
 from app.utils.brand_intelligence import build_brand_comparison
 from app.utils.cross_reference import enrich_with_cross_references
@@ -231,6 +234,7 @@ async def search_parts(
     vehicle_make: str | None = Query(None, description="User's vehicle make (e.g. Volvo, BMW) for personalized AI"),
     vehicle_model: str | None = Query(None, description="User's vehicle model (e.g. 940, E46)"),
     vehicle_year: str | None = Query(None, description="User's vehicle year (e.g. 1995)"),
+    vin: str | None = Query(None, description="17-character VIN to decode and use for vehicle context"),
 ):
     """
     Search for parts across multiple sources in parallel.
@@ -243,6 +247,24 @@ async def search_parts(
     Smart routing skips irrelevant sources based on query type.
     """
     search_start = time.monotonic()
+
+    # --- VIN Decoding (populate vehicle context) ---
+    if vin and len(vin) == 17:
+        try:
+            from app.services.vin_decoder import decode_vin as _decode_vin
+
+            vin_result = await _decode_vin(vin)
+            if not vin_result.error:
+                if vin_result.make and not vehicle_make:
+                    vehicle_make = vin_result.make
+                if vin_result.model and not vehicle_model:
+                    vehicle_model = vin_result.model
+                if vin_result.year and not vehicle_year:
+                    vehicle_year = str(vin_result.year)
+                logger.info(f"VIN {vin} decoded: {vehicle_year} {vehicle_make} {vehicle_model}")
+        except Exception as e:
+            logger.warning(f"VIN decode failed: {e}")
+
     normalized_query = normalize_query(query)
     extracted_part_numbers = extract_part_numbers(normalized_query)
 
@@ -262,6 +284,11 @@ async def search_parts(
     # --- AI Advisor (runs in parallel with everything else) ---
     ai_task = asyncio.create_task(
         _safe_ai_analysis(query, vehicle_make=vehicle_make, vehicle_model=vehicle_model, vehicle_year=vehicle_year)
+    )
+
+    # --- Community Discussions (parallel, 5s timeout) ---
+    community_task = asyncio.create_task(
+        _safe_community_fetch(query, analysis.vehicle_hint, analysis.part_description, analysis.brands_found)
     )
 
     # --- Interchange Expansion (Phase 5) ---
@@ -519,6 +546,45 @@ async def search_parts(
         for g in sorted_groups
     ]
 
+    # --- Collect community results ---
+    community_threads: list[CommunityThread] = await community_task
+    community_sources = [
+        CommunitySource(title=t.title, url=t.url, source="reddit", score=t.score) for t in community_threads
+    ]
+
+    # --- Resolve vehicle alias BEFORE building response (needed for fitment) ---
+    resolved_vehicle_id: int | None = None
+    resolved_config_id: int | None = None
+    if vehicle_year or vehicle_make or vehicle_model:
+        alias_parts = [
+            p
+            for p in (str(vehicle_year or "").strip(), (vehicle_make or "").strip(), (vehicle_model or "").strip())
+            if p
+        ]
+        alias_text = " ".join(alias_parts)
+        if alias_text:
+            try:
+                resolve_result = await resolve_vehicle_alias(alias_text, source_domain=None)
+                resolved_vehicle_id = resolve_result.vehicle_id
+                resolved_config_id = resolve_result.config_id
+            except Exception as e:
+                logger.warning("Vehicle resolver failed: %s", e)
+
+    # --- Fitment Matching ---
+    if resolved_vehicle_id and market_listings:
+        try:
+            all_pns = list({pn for ml in market_listings for pn in ml.part_numbers if pn})
+            fitment_map = await check_fitments(all_pns, resolved_vehicle_id)
+            if fitment_map:
+                for ml in market_listings:
+                    for pn in ml.part_numbers:
+                        if pn in fitment_map:
+                            ml.fitment_status = fitment_map[pn]
+                            break
+                logger.info(f"Fitment matched {len(fitment_map)} part numbers")
+        except Exception as e:
+            logger.warning(f"Fitment check failed: {e}")
+
     # Build intelligence data for the response
     intelligence = PartIntelligence(
         query_type=analysis.query_type.value,
@@ -528,6 +594,7 @@ async def search_parts(
         brands_found=analysis.brands_found,
         interchange=_build_interchange_info(interchange_group) if interchange_group else None,
         brand_comparison=brand_comparison,
+        community_sources=community_sources,
     )
 
     # --- Build AI analysis for response ---
@@ -553,24 +620,6 @@ async def search_parts(
 
     # Cache overall result
     await set_cached_result(overall_cache_key, response_data)
-
-    # --- Resolve vehicle alias when request provides make/model/year (canonical layer) ---
-    resolved_vehicle_id: int | None = None
-    resolved_config_id: int | None = None
-    if vehicle_year or vehicle_make or vehicle_model:
-        alias_parts = [
-            p
-            for p in (str(vehicle_year or "").strip(), (vehicle_make or "").strip(), (vehicle_model or "").strip())
-            if p
-        ]
-        alias_text = " ".join(alias_parts)
-        if alias_text:
-            try:
-                resolve_result = await resolve_vehicle_alias(alias_text, source_domain=None)
-                resolved_vehicle_id = resolve_result.vehicle_id
-                resolved_config_id = resolve_result.config_id
-            except Exception as e:
-                logger.warning("Vehicle resolver failed: %s", e)
 
     # --- Record to SQLite (async, non-blocking) ---
     response_time_ms = int((time.monotonic() - search_start) * 1000)
@@ -616,6 +665,26 @@ async def search_parts(
 
 
 # ── Helper functions ────────────────────────────────────────────────────
+
+
+async def _safe_community_fetch(
+    query: str,
+    vehicle_hint: str | None = None,
+    part_description: str | None = None,
+    brands: list[str] | None = None,
+) -> list[CommunityThread]:
+    """Fetch community discussions with timeout and error handling."""
+    try:
+        return await asyncio.wait_for(
+            fetch_community_discussions(query, vehicle_hint, part_description, brands),
+            timeout=5,
+        )
+    except TimeoutError:
+        logger.warning("Community fetch timed out after 5s")
+        return []
+    except Exception as e:
+        logger.warning(f"Community fetch failed: {e}")
+        return []
 
 
 async def _safe_ai_analysis(

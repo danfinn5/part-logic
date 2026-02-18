@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { SearchResponse, SortOption, ViewMode, PriceTrend } from './lib/types';
-import { searchParts, getPriceTrends } from './lib/api';
+import { searchParts, getPriceTrends, decodeVin } from './lib/api';
 import AISummary from './components/AISummary';
 import AIRecommendations from './components/AIRecommendations';
 import ComparisonView from './components/ComparisonView';
@@ -12,6 +12,8 @@ import ExternalLinksSection from './components/ExternalLinksSection';
 import SourceStatusBar from './components/SourceStatusBar';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import PriceChart from './components/PriceChart';
+import SavedSearches from './components/SavedSearches';
+import { saveSearch as saveSearchApi } from './lib/api';
 
 function getPrimaryPartNumber(data: SearchResponse | null): string | null {
   if (!data) return null;
@@ -34,18 +36,74 @@ export default function Home() {
   const [vehicleMake, setVehicleMake] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehicleYear, setVehicleYear] = useState('');
+  const [vin, setVin] = useState('');
+  const [vinDecoding, setVinDecoding] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const vehicleContext =
     vehicleMake || vehicleModel || vehicleYear
       ? { make: vehicleMake.trim() || undefined, model: vehicleModel.trim() || undefined, year: vehicleYear.trim() || undefined }
       : undefined;
 
+  const handleSaveSearch = async () => {
+    if (!query.trim()) return;
+    await saveSearchApi({
+      query: query.trim(),
+      vehicle_make: vehicleMake || undefined,
+      vehicle_model: vehicleModel || undefined,
+      vehicle_year: vehicleYear || undefined,
+      vin: vin.length === 17 ? vin : undefined,
+      sort,
+    });
+    setSaved(true);
+  };
+
+  const handleRunSavedSearch = (q: string, vehicle?: { make?: string; model?: string; year?: string }) => {
+    setQuery(q);
+    if (vehicle?.make) setVehicleMake(vehicle.make);
+    if (vehicle?.model) setVehicleModel(vehicle.model);
+    if (vehicle?.year) setVehicleYear(vehicle.year);
+    setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+      setSaved(false);
+      try {
+        const result = await searchParts(q, sort, vehicle);
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    }, 0);
+  };
+
+  const handleVinChange = async (value: string) => {
+    setVin(value);
+    if (value.length === 17 && /^[A-HJ-NPR-Z0-9]{17}$/i.test(value)) {
+      setVinDecoding(true);
+      try {
+        const result = await decodeVin(value);
+        if (!result.error) {
+          if (result.year) setVehicleYear(String(result.year));
+          if (result.make) setVehicleMake(result.make);
+          if (result.model) setVehicleModel(result.model);
+        }
+      } catch {
+        // Silently fail — VIN decode is optional
+      } finally {
+        setVinDecoding(false);
+      }
+    }
+  };
+
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
+    setSaved(false);
     try {
-      const result = await searchParts(query, sort, vehicleContext);
+      const result = await searchParts(query, sort, vehicleContext, vin.length === 17 ? vin : undefined);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -60,7 +118,7 @@ export default function Home() {
       setLoading(true);
       setError(null);
       try {
-        const result = await searchParts(pn, sort, vehicleContext);
+        const result = await searchParts(pn, sort, vehicleContext, vin.length === 17 ? vin : undefined);
         setData(result);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -135,6 +193,17 @@ export default function Home() {
             <div className="mt-3 flex flex-wrap gap-3">
               <input
                 type="text"
+                value={vin}
+                onChange={(e) => handleVinChange(e.target.value.toUpperCase())}
+                placeholder="VIN (17 chars — auto-fills below)"
+                className="input-field w-full font-mono text-xs"
+                maxLength={17}
+              />
+              {vinDecoding && (
+                <span className="text-xs text-blue-500 w-full">Decoding VIN...</span>
+              )}
+              <input
+                type="text"
                 value={vehicleYear}
                 onChange={(e) => setVehicleYear(e.target.value)}
                 placeholder="Year"
@@ -182,9 +251,18 @@ export default function Home() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Part number, description, or OEM number..."
-              className="input-field flex-1 min-w-[200px]"
+              className="input-field w-full sm:w-auto sm:flex-1 min-w-[200px]"
             />
             <span className="text-slate-400 text-sm hidden sm:inline">Vehicle:</span>
+            <input
+              type="text"
+              value={vin}
+              onChange={(e) => handleVinChange(e.target.value.toUpperCase())}
+              placeholder="VIN"
+              className="input-field !w-20 sm:!w-44 !py-2 font-mono text-[10px]"
+              maxLength={17}
+              title="17-character VIN"
+            />
             <input
               type="text"
               value={vehicleYear}
@@ -199,7 +277,7 @@ export default function Home() {
               value={vehicleMake}
               onChange={(e) => setVehicleMake(e.target.value)}
               placeholder="Make"
-              className="input-field !w-24 !py-2"
+              className="input-field !w-20 sm:!w-24 !py-2"
               title="Vehicle make"
             />
             <input
@@ -207,7 +285,7 @@ export default function Home() {
               value={vehicleModel}
               onChange={(e) => setVehicleModel(e.target.value)}
               placeholder="Model"
-              className="input-field !w-24 !py-2"
+              className="input-field !w-20 sm:!w-24 !py-2"
               title="Vehicle model"
             />
             <select
@@ -258,11 +336,28 @@ export default function Home() {
                 ))}
               </div>
             )}
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                onClick={handleSaveSearch}
+                disabled={saved}
+                className={`text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer transition-colors ${
+                  saved
+                    ? 'bg-green-50 text-green-600 border-green-200'
+                    : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600 hover:border-blue-200'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill={saved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                {saved ? 'Saved' : 'Save'}
+              </button>
+              <SavedSearches onRunSearch={handleRunSavedSearch} currentQuery={query} />
+            </div>
           </div>
 
-          {/* 1. Summary at top — vehicle, part, expert notes from Gemini */}
+          {/* 1. Summary at top — vehicle, part, expert notes, interchange, brand breakdown */}
           {hasSummary && ai && (
-            <AISummary analysis={ai} />
+            <AISummary analysis={ai} intelligence={intel} onSearchPartNumber={handleSearchPartNumber} />
           )}
 
           {/* 2. AI Recommendations */}
