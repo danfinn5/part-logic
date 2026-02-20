@@ -1,8 +1,9 @@
 """Tests for ranking and sorting utilities."""
 
 from app.schemas.search import ExternalLink, MarketListing, SalvageHit
+from app.services.ai_advisor import AIAdvisorResult
 from app.utils.query_analysis import QueryAnalysis, QueryType
-from app.utils.ranking import filter_salvage_hits, group_links_by_category, rank_listings
+from app.utils.ranking import filter_market_listings, filter_salvage_hits, group_links_by_category, rank_listings
 
 
 def _make_listing(**kwargs):
@@ -204,3 +205,64 @@ class TestFilterSalvageHits:
         vehicles = [h.vehicle for h in result]
         assert "" in vehicles
         assert "1987 Porsche 944" in vehicles
+
+
+class TestFilterMarketListings:
+    def test_wrong_model_filtered(self):
+        """Listings for wrong model of same make are filtered out."""
+        ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
+        listings = [
+            _make_listing(title="Porsche 911 Engine Mount", url="https://example.com/1"),
+            _make_listing(title="Porsche 944 Engine Mount", url="https://example.com/2"),
+            _make_listing(title="Porsche Cayenne Motor Mount", url="https://example.com/3"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 1
+        assert "944" in result[0].title
+
+    def test_generic_parts_kept(self):
+        """Listings mentioning make but no specific model are kept."""
+        ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
+        listings = [
+            _make_listing(title="Porsche Engine Mount Universal", url="https://example.com/1"),
+            _make_listing(title="Engine Mount - Fits Porsche", url="https://example.com/2"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 2
+
+    def test_make_only_kept(self):
+        """Listings not mentioning the target make at all are kept."""
+        ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
+        listings = [
+            _make_listing(title="Universal Engine Mount Bracket", url="https://example.com/1"),
+            _make_listing(title="BMW E36 Engine Mount", url="https://example.com/2"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 2
+
+    def test_no_ai_hint_passes_all(self):
+        """All listings pass when no AI analysis is available."""
+        listings = [
+            _make_listing(title="Porsche 911 Engine Mount", url="https://example.com/1"),
+            _make_listing(title="Porsche 944 Engine Mount", url="https://example.com/2"),
+        ]
+        result = filter_market_listings(listings, None)
+        assert len(result) == 2
+
+    def test_both_models_kept(self):
+        """Listing mentioning both target and another model is kept."""
+        ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
+        listings = [
+            _make_listing(title="Porsche 944 924 Engine Mount", url="https://example.com/1"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 1
+
+    def test_no_vehicle_model_passes_all(self):
+        """All listings pass when AI has make but no model."""
+        ai = AIAdvisorResult(vehicle_make="Porsche")
+        listings = [
+            _make_listing(title="Porsche 911 Engine Mount", url="https://example.com/1"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 1

@@ -53,7 +53,7 @@ class FCPEuroConnector(BaseConnector):
         """Fetch and parse FCP Euro search results."""
         encoded = quote_plus(query)
         url = f"https://www.fcpeuro.com/products?keywords={encoded}"
-        html, status = await fetch_html(url, retries=2)
+        html, status = await fetch_html(url, headers={"Referer": "https://www.fcpeuro.com/"}, retries=2)
         soup = BeautifulSoup(html, "html.parser")
 
         # Strategy 1: Extract from GTM JSON embedded in turbo-frame

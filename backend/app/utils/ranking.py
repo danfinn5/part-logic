@@ -2,9 +2,15 @@
 Ranking and sorting utilities for search results.
 """
 
+import logging
+import re
+
 from app.schemas.search import ExternalLink, MarketListing, SalvageHit
+from app.services.ai_advisor import AIAdvisorResult
 from app.utils.brand_intelligence import get_brand_tier_boost
 from app.utils.query_analysis import QueryAnalysis
+
+logger = logging.getLogger(__name__)
 
 
 def _relevance_score(
@@ -135,6 +141,286 @@ def rank_listings(
             key=lambda x: _relevance_score(x, query, analysis),
             reverse=True,
         )
+
+
+# Known models by make — used to detect wrong-vehicle listings
+_MAKE_MODELS: dict[str, list[str]] = {
+    "porsche": [
+        "911",
+        "944",
+        "924",
+        "928",
+        "968",
+        "356",
+        "914",
+        "cayenne",
+        "panamera",
+        "macan",
+        "taycan",
+        "boxster",
+        "cayman",
+        "718",
+    ],
+    "bmw": [
+        "e30",
+        "e36",
+        "e46",
+        "e90",
+        "e92",
+        "f30",
+        "g20",
+        "e39",
+        "e60",
+        "f10",
+        "e34",
+        "x3",
+        "x5",
+        "x1",
+        "x7",
+        "m3",
+        "m5",
+        "z3",
+        "z4",
+        "i3",
+        "i4",
+        "ix",
+    ],
+    "mercedes": [
+        "c-class",
+        "e-class",
+        "s-class",
+        "a-class",
+        "cla",
+        "cls",
+        "gle",
+        "glc",
+        "gla",
+        "glb",
+        "gls",
+        "amg gt",
+        "sl",
+        "slk",
+        "w203",
+        "w204",
+        "w205",
+        "w211",
+        "w212",
+        "w213",
+        "w220",
+        "w221",
+        "w222",
+        "w223",
+    ],
+    "audi": [
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "a8",
+        "q3",
+        "q5",
+        "q7",
+        "q8",
+        "tt",
+        "r8",
+        "rs3",
+        "rs4",
+        "rs5",
+        "rs6",
+        "rs7",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+    ],
+    "volkswagen": [
+        "golf",
+        "jetta",
+        "passat",
+        "tiguan",
+        "atlas",
+        "arteon",
+        "beetle",
+        "gti",
+        "r32",
+        "cc",
+        "touareg",
+        "id.4",
+    ],
+    "honda": [
+        "civic",
+        "accord",
+        "cr-v",
+        "hr-v",
+        "pilot",
+        "odyssey",
+        "fit",
+        "insight",
+        "element",
+        "s2000",
+        "prelude",
+        "integra",
+    ],
+    "toyota": [
+        "camry",
+        "corolla",
+        "rav4",
+        "highlander",
+        "tacoma",
+        "tundra",
+        "4runner",
+        "supra",
+        "86",
+        "prius",
+        "sienna",
+        "celica",
+        "mr2",
+        "land cruiser",
+    ],
+    "ford": [
+        "mustang",
+        "f-150",
+        "f-250",
+        "f-350",
+        "explorer",
+        "escape",
+        "bronco",
+        "ranger",
+        "edge",
+        "fusion",
+        "focus",
+        "taurus",
+        "expedition",
+        "maverick",
+    ],
+    "chevrolet": [
+        "camaro",
+        "corvette",
+        "silverado",
+        "tahoe",
+        "suburban",
+        "equinox",
+        "traverse",
+        "malibu",
+        "impala",
+        "blazer",
+        "colorado",
+        "trailblazer",
+    ],
+    "subaru": ["wrx", "sti", "outback", "forester", "crosstrek", "impreza", "legacy", "brz", "ascent", "baja"],
+    "nissan": [
+        "altima",
+        "maxima",
+        "sentra",
+        "370z",
+        "350z",
+        "300zx",
+        "240sx",
+        "rogue",
+        "pathfinder",
+        "frontier",
+        "titan",
+        "gt-r",
+        "leaf",
+    ],
+    "mazda": ["miata", "mx-5", "mazda3", "mazda6", "cx-5", "cx-9", "cx-30", "rx-7", "rx-8"],
+    "volvo": [
+        "240",
+        "740",
+        "940",
+        "s40",
+        "s60",
+        "s80",
+        "s90",
+        "v40",
+        "v60",
+        "v70",
+        "v90",
+        "xc40",
+        "xc60",
+        "xc90",
+        "c30",
+        "c70",
+        "850",
+    ],
+    "hyundai": ["elantra", "sonata", "tucson", "santa fe", "kona", "palisade", "veloster", "genesis"],
+    "kia": ["forte", "optima", "k5", "sorento", "sportage", "telluride", "soul", "stinger", "seltos", "sedona"],
+}
+
+
+def filter_market_listings(
+    listings: list[MarketListing],
+    analysis: AIAdvisorResult | None = None,
+) -> list[MarketListing]:
+    """
+    Filter out market listings that are clearly for the wrong vehicle model.
+
+    If the AI analysis identifies a specific make+model (e.g. "Porsche 944"),
+    remove listings whose title mentions the same make but a DIFFERENT model
+    (e.g. "Porsche 911 Engine Mount"). Keeps:
+    - Listings that match the target model
+    - Generic/universal parts with no model mention
+    - Listings for different makes entirely (handled elsewhere)
+    - Listings that mention both the target model and another model
+    """
+    if not analysis or not analysis.vehicle_make or not analysis.vehicle_model:
+        return listings
+
+    make_lower = analysis.vehicle_make.lower().strip()
+    model_lower = analysis.vehicle_model.lower().strip()
+
+    # Get known models for this make
+    known_models = _MAKE_MODELS.get(make_lower, [])
+    if not known_models:
+        return listings
+
+    # Build set of wrong models (all known models EXCEPT the target)
+    wrong_models = set()
+    for m in known_models:
+        if m.lower() != model_lower and m.lower() not in model_lower and model_lower not in m.lower():
+            wrong_models.add(m.lower())
+
+    if not wrong_models:
+        return listings
+
+    filtered = []
+    removed_count = 0
+    for listing in listings:
+        title_lower = listing.title.lower()
+
+        # Only check listings that mention this make
+        if make_lower not in title_lower:
+            filtered.append(listing)
+            continue
+
+        # If listing mentions the target model, always keep it
+        if model_lower in title_lower:
+            filtered.append(listing)
+            continue
+
+        # Check if title mentions a wrong model for this make
+        is_wrong_model = False
+        for wrong in wrong_models:
+            # Use word boundary to avoid false positives (e.g. "944" in "19440")
+            if re.search(rf"\b{re.escape(wrong)}\b", title_lower):
+                is_wrong_model = True
+                break
+
+        if is_wrong_model:
+            removed_count += 1
+        else:
+            # Make mentioned but no specific model — keep (could be generic/universal)
+            filtered.append(listing)
+
+    if removed_count > 0:
+        logger.info(
+            f"Filtered {removed_count} wrong-vehicle market listings "
+            f"(target: {analysis.vehicle_make} {analysis.vehicle_model})"
+        )
+
+    return filtered
 
 
 def filter_salvage_hits(

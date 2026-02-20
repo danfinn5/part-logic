@@ -46,7 +46,7 @@ from app.utils.grouping import group_listings, sort_groups
 from app.utils.interchange import InterchangeGroup, build_interchange_group
 from app.utils.part_numbers import extract_part_numbers, normalize_query
 from app.utils.query_analysis import QueryType, analyze_query
-from app.utils.ranking import filter_salvage_hits, group_links_by_category, rank_listings
+from app.utils.ranking import filter_market_listings, filter_salvage_hits, group_links_by_category, rank_listings
 
 logger = logging.getLogger(__name__)
 
@@ -469,6 +469,9 @@ async def search_parts(
     # Deduplication
     market_listings = deduplicate_listings(market_listings)
     external_links = deduplicate_links(external_links)
+
+    # --- Filter wrong-vehicle market listings ---
+    market_listings = filter_market_listings(market_listings, ai_result)
 
     # --- AI-driven filtering ---
     # Remove salvage results for consumable parts

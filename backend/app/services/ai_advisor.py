@@ -14,6 +14,7 @@ Configure via OPENAI_API_KEY or ANTHROPIC_API_KEY in .env.
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from urllib.parse import quote_plus
 
@@ -278,7 +279,7 @@ async def _call_gemini(user_message: str) -> AIAdvisorResult:
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "temperature": 0.3,
-                    "maxOutputTokens": 2000,
+                    "maxOutputTokens": 4096,
                 },
             },
         )
@@ -322,7 +323,7 @@ async def _call_openai(user_message: str) -> AIAdvisorResult:
             json={
                 "model": model,
                 "temperature": 0.3,
-                "max_tokens": 2000,
+                "max_tokens": 4096,
                 "response_format": {"type": "json_object"},
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
@@ -365,7 +366,7 @@ async def _call_anthropic(user_message: str) -> AIAdvisorResult:
             },
             json={
                 "model": "claude-sonnet-4-20250514",
-                "max_tokens": 2000,
+                "max_tokens": 4096,
                 "system": SYSTEM_PROMPT,
                 "messages": [{"role": "user", "content": user_message}],
             },
@@ -393,11 +394,70 @@ async def _call_anthropic(user_message: str) -> AIAdvisorResult:
 # ── Response parsing (shared) ───────────────────────────────────────────
 
 
+def _try_repair_json(text: str) -> dict | None:
+    """
+    Attempt to repair truncated JSON by closing open strings, arrays, and objects.
+
+    Returns the parsed dict on success, or None if repair fails.
+    """
+    # Strip trailing comma or whitespace
+    repaired = text.rstrip()
+    repaired = re.sub(r",\s*$", "", repaired)
+
+    # Track nesting to figure out what needs closing
+    in_string = False
+    escape_next = False
+    stack = []  # '[' or '{'
+
+    for ch in repaired:
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\":
+            if in_string:
+                escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch in ("{", "["):
+            stack.append(ch)
+        elif ch == "}":
+            if stack and stack[-1] == "{":
+                stack.pop()
+        elif ch == "]":
+            if stack and stack[-1] == "[":
+                stack.pop()
+
+    # If we're inside a string, close it
+    if in_string:
+        repaired += '"'
+
+    # Strip any trailing incomplete key-value (e.g. `"key": "val` after closing the string)
+    # Re-strip trailing comma
+    repaired = re.sub(r",\s*$", "", repaired.rstrip())
+
+    # Close open brackets/braces in reverse order
+    for bracket in reversed(stack):
+        if bracket == "{":
+            repaired += "}"
+        else:
+            repaired += "]"
+
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        return None
+
+
 def _parse_ai_response(text: str) -> AIAdvisorResult:
     """Parse the AI's JSON response into an AIAdvisorResult."""
-    # Strip markdown code fences if present
+    # Strip markdown code fences if present (handles ```json, ```JSON, bare ```)
     text = text.strip()
     if text.startswith("```"):
+        # Remove opening fence line (e.g. "```json\n" or "```\n")
         text = text.split("\n", 1)[1] if "\n" in text else text[3:]
     if text.endswith("```"):
         text = text[: text.rfind("```")]
@@ -406,8 +466,11 @@ def _parse_ai_response(text: str) -> AIAdvisorResult:
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse AI response as JSON: {e}\nText: {text[:500]}")
-        return AIAdvisorResult(error="Failed to parse AI response")
+        logger.warning(f"JSON parse failed, attempting repair: {e}")
+        data = _try_repair_json(text)
+        if data is None:
+            logger.error(f"JSON repair also failed.\nText: {text[:500]}")
+            return AIAdvisorResult(error="Failed to parse AI response")
 
     result = AIAdvisorResult(raw_response=data)
 
