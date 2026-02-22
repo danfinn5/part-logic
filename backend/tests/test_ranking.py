@@ -230,15 +230,40 @@ class TestFilterMarketListings:
         result = filter_market_listings(listings, ai)
         assert len(result) == 2
 
-    def test_make_only_kept(self):
-        """Listings not mentioning the target make at all are kept."""
+    def test_generic_no_make_kept(self):
+        """Listings not mentioning any known make are kept (generic/universal)."""
         ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
         listings = [
             _make_listing(title="Universal Engine Mount Bracket", url="https://example.com/1"),
-            _make_listing(title="BMW E36 Engine Mount", url="https://example.com/2"),
+            _make_listing(title="Engine Mount Heavy Duty Replacement", url="https://example.com/2"),
         ]
         result = filter_market_listings(listings, ai)
         assert len(result) == 2
+
+    def test_cross_make_filtered(self):
+        """Listings mentioning a different make are filtered when searching a specific vehicle."""
+        ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
+        listings = [
+            _make_listing(title="BMW E36 Engine Mount", url="https://example.com/1"),
+            _make_listing(title="Audi A5 Engine Mount", url="https://example.com/2"),
+            _make_listing(title="Porsche 944 Engine Mount", url="https://example.com/3"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 1
+        assert "Porsche 944" in result[0].title
+
+    def test_short_make_word_boundary(self):
+        """Short make names like 'kia' use word boundaries to avoid false positives."""
+        ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
+        listings = [
+            # "kia" appears as a word — should be filtered
+            _make_listing(title="Kia Sportage Engine Mount", url="https://example.com/1"),
+            # "kia" is part of another word — should NOT be filtered
+            _make_listing(title="Akia Brand Engine Mount", url="https://example.com/2"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 1
+        assert "Akia" in result[0].title
 
     def test_no_ai_hint_passes_all(self):
         """All listings pass when no AI analysis is available."""

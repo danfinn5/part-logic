@@ -621,8 +621,16 @@ async def search_parts(
         "ai_analysis": ai_analysis.model_dump() if ai_analysis else None,
     }
 
-    # Cache overall result
-    await set_cached_result(overall_cache_key, response_data)
+    # Cache overall result with tiered TTL based on quality
+    has_ai = ai_analysis is not None
+    has_listings = len(market_listings) > 0
+    if has_ai and has_listings:
+        cache_ttl = settings.cache_ttl_seconds  # Full result: 6 hours
+    elif has_ai or has_listings:
+        cache_ttl = settings.cache_ttl_degraded_seconds * 2  # Partial: 10 minutes
+    else:
+        cache_ttl = settings.cache_ttl_degraded_seconds  # Poor: 5 minutes
+    await set_cached_result(overall_cache_key, response_data, ttl=cache_ttl)
 
     # --- Record to SQLite (async, non-blocking) ---
     response_time_ms = int((time.monotonic() - search_start) * 1000)

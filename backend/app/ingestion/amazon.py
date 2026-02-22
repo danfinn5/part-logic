@@ -7,6 +7,7 @@ Amazon has strong anti-bot protections, so fallback is expected to be common.
 """
 
 import logging
+import re
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -19,6 +20,48 @@ from app.utils.part_numbers import extract_part_numbers
 from app.utils.scraping import parse_price
 
 logger = logging.getLogger(__name__)
+
+# Words too common to be useful for relevance matching
+_STOPWORDS = frozenset(
+    {
+        "for",
+        "the",
+        "and",
+        "with",
+        "fit",
+        "fits",
+        "compatible",
+        "replacement",
+        "new",
+        "set",
+        "kit",
+        "pair",
+        "pack",
+        "oem",
+        "premium",
+        "heavy",
+        "duty",
+        "left",
+        "right",
+        "front",
+        "rear",
+        "upper",
+        "lower",
+        "inner",
+        "outer",
+        "a",
+        "an",
+        "in",
+        "on",
+        "of",
+        "to",
+        "by",
+        "is",
+        "at",
+        "or",
+        "as",
+    }
+)
 
 
 class AmazonConnector(BaseConnector):
@@ -103,6 +146,9 @@ class AmazonConnector(BaseConnector):
             if not title:
                 continue
 
+            if not self._is_relevant(title, query):
+                continue
+
             listings.append(
                 MarketListing(
                     source="amazon",
@@ -166,3 +212,13 @@ class AmazonConnector(BaseConnector):
             source="amazon",
             category="new_parts",
         )
+
+    @staticmethod
+    def _is_relevant(title: str, query: str) -> bool:
+        """Check that a listing title shares enough significant keywords with the query."""
+        title_words = set(re.findall(r"[a-z0-9]+", title.lower()))
+        query_words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if w not in _STOPWORDS]
+        if not query_words:
+            return True
+        matched = sum(1 for w in query_words if w in title_words)
+        return matched / len(query_words) >= 0.3

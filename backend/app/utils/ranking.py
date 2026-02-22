@@ -349,75 +349,144 @@ _MAKE_MODELS: dict[str, list[str]] = {
     "kia": ["forte", "optima", "k5", "sorento", "sportage", "telluride", "soul", "stinger", "seltos", "sedona"],
 }
 
+# All known automotive makes (for cross-make filtering)
+_KNOWN_MAKES: set[str] = set(_MAKE_MODELS.keys())
+_KNOWN_MAKES.update(
+    {
+        "acura",
+        "alfa romeo",
+        "buick",
+        "cadillac",
+        "chrysler",
+        "dodge",
+        "fiat",
+        "genesis",
+        "gmc",
+        "infiniti",
+        "jaguar",
+        "jeep",
+        "land rover",
+        "lexus",
+        "lincoln",
+        "mini",
+        "mitsubishi",
+        "ram",
+        "saab",
+        "scion",
+        "tesla",
+    }
+)
+
+# Aliases: map common alternate names to the canonical make
+_MAKE_ALIASES: dict[str, str] = {
+    "vw": "volkswagen",
+    "chevy": "chevrolet",
+    "mercedes-benz": "mercedes",
+    "merc": "mercedes",
+}
+
+# Short make names that need word-boundary matching to avoid false positives
+# (e.g. "ram" in "ceramic", "kia" in "akia", "mini" in "minimize")
+_SHORT_MAKES: set[str] = {"ram", "kia", "mini", "gmc", "fiat", "saab"}
+
+
+def _mentions_make(text_lower: str, make: str) -> bool:
+    """Check if text mentions a make, using word boundaries for short names."""
+    if make in _SHORT_MAKES or len(make) <= 3:
+        return bool(re.search(rf"\b{re.escape(make)}\b", text_lower))
+    return make in text_lower
+
 
 def filter_market_listings(
     listings: list[MarketListing],
     analysis: AIAdvisorResult | None = None,
 ) -> list[MarketListing]:
     """
-    Filter out market listings that are clearly for the wrong vehicle model.
+    Filter out market listings that are clearly for the wrong vehicle.
 
-    If the AI analysis identifies a specific make+model (e.g. "Porsche 944"),
-    remove listings whose title mentions the same make but a DIFFERENT model
-    (e.g. "Porsche 911 Engine Mount"). Keeps:
-    - Listings that match the target model
-    - Generic/universal parts with no model mention
-    - Listings for different makes entirely (handled elsewhere)
-    - Listings that mention both the target model and another model
+    Two-stage filter:
+    1. Same-make wrong-model: "Porsche 911" when searching Porsche 944
+    2. Cross-make: "Audi A5 Engine Mount" when searching Porsche 944
+
+    Keeps generic/universal listings that don't mention any specific make.
     """
-    if not analysis or not analysis.vehicle_make or not analysis.vehicle_model:
+    if not analysis or not analysis.vehicle_make:
         return listings
 
     make_lower = analysis.vehicle_make.lower().strip()
-    model_lower = analysis.vehicle_model.lower().strip()
+    # Resolve alias to canonical
+    make_canonical = _MAKE_ALIASES.get(make_lower, make_lower)
+    model_lower = (analysis.vehicle_model or "").lower().strip()
 
-    # Get known models for this make
-    known_models = _MAKE_MODELS.get(make_lower, [])
-    if not known_models:
-        return listings
+    # --- Stage 1: Same-make wrong-model filter ---
+    if model_lower:
+        known_models = _MAKE_MODELS.get(make_canonical, [])
+        wrong_models = set()
+        for m in known_models:
+            if m.lower() != model_lower and m.lower() not in model_lower and model_lower not in m.lower():
+                wrong_models.add(m.lower())
+    else:
+        wrong_models = set()
 
-    # Build set of wrong models (all known models EXCEPT the target)
-    wrong_models = set()
-    for m in known_models:
-        if m.lower() != model_lower and m.lower() not in model_lower and model_lower not in m.lower():
-            wrong_models.add(m.lower())
+    # Build the set of "other makes" to check for cross-make contamination
+    # Include both canonical names and aliases that map to different makes
+    target_names = {make_canonical, make_lower}
+    # Also include aliases that resolve to our target
+    for alias, canonical in _MAKE_ALIASES.items():
+        if canonical == make_canonical:
+            target_names.add(alias)
 
-    if not wrong_models:
-        return listings
+    other_makes = set()
+    for m in _KNOWN_MAKES:
+        canon = _MAKE_ALIASES.get(m, m)
+        if canon != make_canonical:
+            other_makes.add(m)
+    # Also add aliases that resolve to non-target makes
+    for alias, canonical in _MAKE_ALIASES.items():
+        if canonical != make_canonical:
+            other_makes.add(alias)
 
     filtered = []
     removed_count = 0
     for listing in listings:
         title_lower = listing.title.lower()
 
-        # Only check listings that mention this make
-        if make_lower not in title_lower:
-            filtered.append(listing)
-            continue
+        # --- Stage 1: Same-make wrong-model ---
+        if wrong_models and _mentions_make(title_lower, make_canonical):
+            # If listing mentions the target model, always keep
+            if model_lower and model_lower in title_lower:
+                filtered.append(listing)
+                continue
 
-        # If listing mentions the target model, always keep it
-        if model_lower in title_lower:
-            filtered.append(listing)
-            continue
+            # Check for wrong models
+            is_wrong_model = False
+            for wrong in wrong_models:
+                if re.search(rf"\b{re.escape(wrong)}\b", title_lower):
+                    is_wrong_model = True
+                    break
+            if is_wrong_model:
+                removed_count += 1
+                continue
 
-        # Check if title mentions a wrong model for this make
-        is_wrong_model = False
-        for wrong in wrong_models:
-            # Use word boundary to avoid false positives (e.g. "944" in "19440")
-            if re.search(rf"\b{re.escape(wrong)}\b", title_lower):
-                is_wrong_model = True
-                break
+        # --- Stage 2: Cross-make filter ---
+        # If listing doesn't mention target make, check if it mentions another known make
+        mentions_target = any(_mentions_make(title_lower, name) for name in target_names)
+        if not mentions_target:
+            mentions_other = False
+            for other in other_makes:
+                if _mentions_make(title_lower, other):
+                    mentions_other = True
+                    break
+            if mentions_other:
+                removed_count += 1
+                continue
 
-        if is_wrong_model:
-            removed_count += 1
-        else:
-            # Make mentioned but no specific model — keep (could be generic/universal)
-            filtered.append(listing)
+        filtered.append(listing)
 
     if removed_count > 0:
         logger.info(
             f"Filtered {removed_count} wrong-vehicle market listings "
-            f"(target: {analysis.vehicle_make} {analysis.vehicle_model})"
+            f"(target: {analysis.vehicle_make} {analysis.vehicle_model or '(any)'})"
         )
 
     return filtered
