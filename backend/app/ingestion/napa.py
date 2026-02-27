@@ -107,10 +107,11 @@ class NAPAConnector(BaseConnector):
 
     def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate NAPA search links (fallback)."""
-        encoded = quote_plus(query)
+        search_term = (kwargs or {}).get("part_description") or query
+        encoded = quote_plus(search_term)
         links = [
             ExternalLink(
-                label=f"Search NAPA for '{query}'",
+                label=f"Search NAPA for '{search_term}'",
                 url=f"https://www.napaonline.com/en/search?q={encoded}",
                 source="napa",
                 category="new_parts",

@@ -25,13 +25,13 @@ MAKE_SUBREDDITS: dict[str, list[str]] = {
     "volvo": ["Volvo"],
     "mercedes": ["mercedes_benz", "MercedesBenz"],
     "mercedes-benz": ["mercedes_benz", "MercedesBenz"],
-    "toyota": ["Toyota", "ToyotaTacoma", "4Runner"],
-    "honda": ["Honda", "CivicSi"],
-    "subaru": ["subaru", "WRX"],
-    "ford": ["Ford", "FordTrucks"],
-    "chevrolet": ["Chevrolet", "Corvette"],
-    "mazda": ["mazda", "Miata"],
-    "nissan": ["Nissan", "350z"],
+    "toyota": ["Toyota"],
+    "honda": ["Honda"],
+    "subaru": ["subaru"],
+    "ford": ["Ford"],
+    "chevrolet": ["Chevrolet"],
+    "mazda": ["mazda"],
+    "nissan": ["Nissan"],
     "lexus": ["Lexus"],
     "hyundai": ["Hyundai"],
     "kia": ["kia"],
@@ -80,6 +80,14 @@ async def fetch_community_discussions(
     search_terms = []
     if part_description:
         search_terms.append(part_description)
+    elif vehicle_hint and query:
+        # Extract part description by removing vehicle info from query
+        remaining = query.lower()
+        for word in vehicle_hint.lower().split():
+            remaining = remaining.replace(word, "", 1)
+        remaining = remaining.strip()
+        if remaining:
+            search_terms.append(remaining)
     if vehicle_hint:
         search_terms.append(vehicle_hint)
     if not search_terms:

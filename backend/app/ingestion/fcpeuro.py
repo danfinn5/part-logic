@@ -196,10 +196,11 @@ class FCPEuroConnector(BaseConnector):
 
     def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate FCP Euro search links (fallback)."""
-        encoded = quote_plus(query)
+        search_term = (kwargs or {}).get("part_description") or query
+        encoded = quote_plus(search_term)
         links = [
             ExternalLink(
-                label=f"Search FCP Euro for '{query}'",
+                label=f"Search FCP Euro for '{search_term}'",
                 url=f"https://www.fcpeuro.com/products?keywords={encoded}",
                 source="fcpeuro",
                 category="new_parts",

@@ -134,10 +134,11 @@ class ECSTuningConnector(BaseConnector):
 
     def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate ECS Tuning search links (fallback)."""
-        encoded = quote_plus(query)
+        search_term = (kwargs or {}).get("part_description") or query
+        encoded = quote_plus(search_term)
         links = [
             ExternalLink(
-                label=f"Search ECS Tuning for '{query}'",
+                label=f"Search ECS Tuning for '{search_term}'",
                 url=f"https://www.ecstuning.com/Search/{encoded}/",
                 source="ecstuning",
                 category="new_parts",

@@ -400,15 +400,20 @@ def _mentions_make(text_lower: str, make: str) -> bool:
 def filter_market_listings(
     listings: list[MarketListing],
     analysis: AIAdvisorResult | None = None,
+    known_part_numbers: list[str] | None = None,
 ) -> list[MarketListing]:
     """
     Filter out market listings that are clearly for the wrong vehicle.
 
-    Two-stage filter:
+    Three-stage filter:
     1. Same-make wrong-model: "Porsche 911" when searching Porsche 944
     2. Cross-make: "Audi A5 Engine Mount" when searching Porsche 944
+    3. No-make vehicle-specific: "URO Parts 8R0199381C Engine Mount" (no make,
+       no matching OEM PN) when searching Porsche 944
 
-    Keeps generic/universal listings that don't mention any specific make.
+    Keeps generic/universal listings that don't mention any specific make
+    ONLY when we don't have enough context to know they're wrong, or when
+    their part numbers match known OEM/interchange numbers.
     """
     if not analysis or not analysis.vehicle_make:
         return listings
@@ -446,6 +451,15 @@ def filter_market_listings(
         if canonical != make_canonical:
             other_makes.add(alias)
 
+    # --- Stage 3 prep: known part numbers for vehicle-specific filtering ---
+    # Combine AI OEM part numbers + caller-provided part numbers (interchange, extracted)
+    oem_pns_upper: set[str] = set()
+    if model_lower:  # Only apply stage 3 for vehicle-specific searches
+        if analysis.oem_part_numbers:
+            oem_pns_upper.update(pn.upper() for pn in analysis.oem_part_numbers)
+        if known_part_numbers:
+            oem_pns_upper.update(pn.upper() for pn in known_part_numbers)
+
     filtered = []
     removed_count = 0
     for listing in listings:
@@ -480,6 +494,22 @@ def filter_market_listings(
             if mentions_other:
                 removed_count += 1
                 continue
+
+            # --- Stage 3: No-make vehicle-specific filter ---
+            # Listing mentions no make at all. If we have OEM part numbers for
+            # the target vehicle, only keep it if a listing PN matches.
+            if oem_pns_upper:
+                listing_pns_upper = {pn.upper() for pn in listing.part_numbers if pn}
+                if listing_pns_upper:
+                    if not (listing_pns_upper & oem_pns_upper):
+                        removed_count += 1
+                        continue
+                else:
+                    # No extracted PNs — check if title text contains any OEM PN
+                    title_upper = listing.title.upper()
+                    if not any(pn in title_upper for pn in oem_pns_upper):
+                        removed_count += 1
+                        continue
 
         filtered.append(listing)
 

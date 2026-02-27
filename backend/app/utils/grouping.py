@@ -122,6 +122,10 @@ def group_listings(listings: list[MarketListing]) -> list[dict]:
                 }
             )
 
+        # Skip groups where all listings had zero/negative prices
+        if not offers:
+            continue
+
         # Sort offers by total cost (cheapest first)
         offers.sort(key=lambda o: o["total_cost"])
 

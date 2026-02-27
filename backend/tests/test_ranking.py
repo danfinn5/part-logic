@@ -265,6 +265,69 @@ class TestFilterMarketListings:
         assert len(result) == 1
         assert "Akia" in result[0].title
 
+    def test_no_make_wrong_pn_filtered(self):
+        """Listings with no make but non-matching part numbers are filtered when OEM PNs known."""
+        ai = AIAdvisorResult(
+            vehicle_make="Porsche",
+            vehicle_model="944",
+            oem_part_numbers=["94437504105", "94437504107"],
+        )
+        listings = [
+            # Audi PN, no make mentioned — should be filtered
+            _make_listing(
+                title="URO Parts 8R0199381C Engine Mount",
+                url="https://example.com/1",
+                part_numbers=["8R0199381C"],
+            ),
+            # Matching OEM PN — should be kept
+            _make_listing(
+                title="Engine Mount 94437504105",
+                url="https://example.com/2",
+                part_numbers=["94437504105"],
+            ),
+            # No extracted PNs but title contains OEM PN — kept
+            _make_listing(title="Engine Mount 94437504105 Replacement", url="https://example.com/3"),
+            # No PNs and no OEM PN in title — filtered
+            _make_listing(title="Engine Mount Universal", url="https://example.com/4"),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 2
+        titles = [r.title for r in result]
+        assert "URO Parts 8R0199381C Engine Mount" not in titles
+        assert "Engine Mount 94437504105" in titles
+        assert "Engine Mount 94437504105 Replacement" in titles
+        assert "Engine Mount Universal" not in titles
+
+    def test_no_make_wrong_pn_kept_without_model(self):
+        """No-make filtering only applies when AI has both make AND model."""
+        ai = AIAdvisorResult(
+            vehicle_make="Porsche",
+            oem_part_numbers=["94437504105"],
+        )
+        listings = [
+            _make_listing(
+                title="URO Parts 8R0199381C Engine Mount",
+                url="https://example.com/1",
+                part_numbers=["8R0199381C"],
+            ),
+        ]
+        result = filter_market_listings(listings, ai)
+        assert len(result) == 1  # No model = no stage 3 filtering
+
+    def test_known_part_numbers_from_caller(self):
+        """Caller-provided part numbers (interchange/extracted) also match in stage 3."""
+        ai = AIAdvisorResult(vehicle_make="Porsche", vehicle_model="944")
+        listings = [
+            _make_listing(
+                title="Engine Mount IC-12345",
+                url="https://example.com/1",
+                part_numbers=["IC-12345"],
+            ),
+        ]
+        # IC-12345 not in AI OEM PNs, but passed via known_part_numbers
+        result = filter_market_listings(listings, ai, known_part_numbers=["IC-12345"])
+        assert len(result) == 1
+
     def test_no_ai_hint_passes_all(self):
         """All listings pass when no AI analysis is available."""
         listings = [

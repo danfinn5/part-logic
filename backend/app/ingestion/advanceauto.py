@@ -107,10 +107,11 @@ class AdvanceAutoConnector(BaseConnector):
 
     def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate Advance Auto search links (fallback)."""
-        encoded = quote_plus(query)
+        search_term = (kwargs or {}).get("part_description") or query
+        encoded = quote_plus(search_term)
         links = [
             ExternalLink(
-                label=f"Search Advance Auto for '{query}'",
+                label=f"Search Advance Auto for '{search_term}'",
                 url=f"https://shop.advanceautoparts.com/find/{encoded}.html",
                 source="advanceauto",
                 category="new_parts",

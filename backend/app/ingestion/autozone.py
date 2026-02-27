@@ -121,10 +121,12 @@ class AutoZoneConnector(BaseConnector):
 
     def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate AutoZone search links (fallback)."""
-        encoded = quote_plus(query)
+        # Prefer part description over full verbose query for better search results
+        search_term = (kwargs or {}).get("part_description") or query
+        encoded = quote_plus(search_term)
         links = [
             ExternalLink(
-                label=f"Search AutoZone for '{query}'",
+                label=f"Search AutoZone for '{search_term}'",
                 url=f"https://www.autozone.com/searchresult?searchText={encoded}",
                 source="autozone",
                 category="new_parts",

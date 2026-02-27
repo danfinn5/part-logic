@@ -11,6 +11,7 @@ from typing import Any
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.data.source_registry import get_active_sources as get_registry_sources
@@ -246,6 +247,36 @@ async def search_parts(
     Results are cached for 6 hours per (source, query) combination.
     Smart routing skips irrelevant sources based on query type.
     """
+    try:
+        return await _search_parts_inner(
+            query=query,
+            zip_code=zip_code,
+            max_results=max_results,
+            sort=sort,
+            vehicle_make=vehicle_make,
+            vehicle_model=vehicle_model,
+            vehicle_year=vehicle_year,
+            vin=vin,
+        )
+    except Exception as e:
+        logger.exception(f"Unhandled error in search_parts: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Search failed: {e}"},
+        )
+
+
+async def _search_parts_inner(
+    query: str,
+    zip_code: str | None,
+    max_results: int,
+    sort: str,
+    vehicle_make: str | None,
+    vehicle_model: str | None,
+    vehicle_year: str | None,
+    vin: str | None,
+):
+    """Inner search implementation, wrapped by search_parts for error handling."""
     search_start = time.monotonic()
 
     # --- VIN Decoding (populate vehicle context) ---
@@ -359,6 +390,7 @@ async def search_parts(
         "max_results": max_results,
         "zip_code": zip_code,
         "part_numbers": all_part_numbers,
+        "part_description": analysis.part_description,
     }
 
     # Pass AI vehicle context to resources connector for make-aware filtering
@@ -471,7 +503,7 @@ async def search_parts(
     external_links = deduplicate_links(external_links)
 
     # --- Filter wrong-vehicle market listings ---
-    market_listings = filter_market_listings(market_listings, ai_result)
+    market_listings = filter_market_listings(market_listings, ai_result, known_part_numbers=all_part_numbers)
 
     # --- AI-driven filtering ---
     # Remove salvage results for consumable parts
