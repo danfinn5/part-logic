@@ -14,6 +14,7 @@ Configure via OPENAI_API_KEY or ANTHROPIC_API_KEY in .env.
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from urllib.parse import quote_plus
 
@@ -200,19 +201,20 @@ def _generate_buy_links(part_number: str, retailers: list[str]) -> list[dict]:
 # ── Provider selection ───────────────────────────────────────────────────
 
 
-def _get_provider() -> str | None:
+def _get_providers() -> list[str]:
     """
-    Determine which AI provider to use.
+    Return available AI providers in priority order.
 
-    Priority: Gemini (free tier) > OpenAI (cheapest paid) > Anthropic > None.
+    Priority: Gemini (free tier) > OpenAI (cheapest paid) > Anthropic.
     """
+    providers = []
     if settings.gemini_api_key:
-        return "gemini"
+        providers.append("gemini")
     if settings.openai_api_key:
-        return "openai"
+        providers.append("openai")
     if settings.anthropic_api_key:
-        return "anthropic"
-    return None
+        providers.append("anthropic")
+    return providers
 
 
 def _user_message(query: str, vehicle_make: str | None, vehicle_model: str | None, vehicle_year: str | None) -> str:
@@ -239,23 +241,26 @@ async def get_ai_recommendations(
     if not settings.ai_synthesis_enabled:
         return AIAdvisorResult(error="AI synthesis is disabled")
 
-    provider = _get_provider()
-    if not provider:
+    providers = _get_providers()
+    if not providers:
         return AIAdvisorResult(
             error="No AI API key configured. Set GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY in .env"
         )
 
     user_msg = _user_message(query, vehicle_make, vehicle_model, vehicle_year)
-    try:
-        if provider == "gemini":
-            return await _call_gemini(user_msg)
-        elif provider == "openai":
-            return await _call_openai(user_msg)
-        else:
-            return await _call_anthropic(user_msg)
-    except Exception as e:
-        logger.error(f"AI advisor ({provider}) failed: {e}")
-        return AIAdvisorResult(error=str(e))
+    callers = {"gemini": _call_gemini, "openai": _call_openai, "anthropic": _call_anthropic}
+
+    for provider in providers:
+        try:
+            result = await callers[provider](user_msg)
+            if result.error is None:
+                return result
+            logger.warning(f"AI advisor ({provider}) returned error: {result.error}, trying next provider")
+        except Exception as e:
+            logger.warning(f"AI advisor ({provider}) failed: {e}, trying next provider")
+
+    # All providers failed — return last error
+    return AIAdvisorResult(error=f"All AI providers failed ({', '.join(providers)})")
 
 
 # ── Gemini provider (free tier) ──────────────────────────────────────────
@@ -278,7 +283,7 @@ async def _call_gemini(user_message: str) -> AIAdvisorResult:
                 "generationConfig": {
                     "responseMimeType": "application/json",
                     "temperature": 0.3,
-                    "maxOutputTokens": 2000,
+                    "maxOutputTokens": 4096,
                 },
             },
         )
@@ -322,7 +327,7 @@ async def _call_openai(user_message: str) -> AIAdvisorResult:
             json={
                 "model": model,
                 "temperature": 0.3,
-                "max_tokens": 2000,
+                "max_tokens": 4096,
                 "response_format": {"type": "json_object"},
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
@@ -365,7 +370,7 @@ async def _call_anthropic(user_message: str) -> AIAdvisorResult:
             },
             json={
                 "model": "claude-sonnet-4-20250514",
-                "max_tokens": 2000,
+                "max_tokens": 4096,
                 "system": SYSTEM_PROMPT,
                 "messages": [{"role": "user", "content": user_message}],
             },
@@ -393,11 +398,70 @@ async def _call_anthropic(user_message: str) -> AIAdvisorResult:
 # ── Response parsing (shared) ───────────────────────────────────────────
 
 
+def _try_repair_json(text: str) -> dict | None:
+    """
+    Attempt to repair truncated JSON by closing open strings, arrays, and objects.
+
+    Returns the parsed dict on success, or None if repair fails.
+    """
+    # Strip trailing comma or whitespace
+    repaired = text.rstrip()
+    repaired = re.sub(r",\s*$", "", repaired)
+
+    # Track nesting to figure out what needs closing
+    in_string = False
+    escape_next = False
+    stack = []  # '[' or '{'
+
+    for ch in repaired:
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\":
+            if in_string:
+                escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch in ("{", "["):
+            stack.append(ch)
+        elif ch == "}":
+            if stack and stack[-1] == "{":
+                stack.pop()
+        elif ch == "]":
+            if stack and stack[-1] == "[":
+                stack.pop()
+
+    # If we're inside a string, close it
+    if in_string:
+        repaired += '"'
+
+    # Strip any trailing incomplete key-value (e.g. `"key": "val` after closing the string)
+    # Re-strip trailing comma
+    repaired = re.sub(r",\s*$", "", repaired.rstrip())
+
+    # Close open brackets/braces in reverse order
+    for bracket in reversed(stack):
+        if bracket == "{":
+            repaired += "}"
+        else:
+            repaired += "]"
+
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        return None
+
+
 def _parse_ai_response(text: str) -> AIAdvisorResult:
     """Parse the AI's JSON response into an AIAdvisorResult."""
-    # Strip markdown code fences if present
+    # Strip markdown code fences if present (handles ```json, ```JSON, bare ```)
     text = text.strip()
     if text.startswith("```"):
+        # Remove opening fence line (e.g. "```json\n" or "```\n")
         text = text.split("\n", 1)[1] if "\n" in text else text[3:]
     if text.endswith("```"):
         text = text[: text.rfind("```")]
@@ -406,8 +470,11 @@ def _parse_ai_response(text: str) -> AIAdvisorResult:
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse AI response as JSON: {e}\nText: {text[:500]}")
-        return AIAdvisorResult(error="Failed to parse AI response")
+        logger.warning(f"JSON parse failed, attempting repair: {e}")
+        data = _try_repair_json(text)
+        if data is None:
+            logger.error(f"JSON repair also failed.\nText: {text[:500]}")
+            return AIAdvisorResult(error="Failed to parse AI response")
 
     result = AIAdvisorResult(raw_response=data)
 

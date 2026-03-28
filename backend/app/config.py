@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     redis_db: int = 0
     redis_password: str | None = None
     cache_ttl_seconds: int = 21600  # 6 hours
+    cache_ttl_degraded_seconds: int = 300  # 5 minutes for results missing AI or listings
 
     # eBay API Configuration
     ebay_app_id: str | None = None

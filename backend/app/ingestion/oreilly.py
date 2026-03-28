@@ -107,10 +107,11 @@ class OReillyConnector(BaseConnector):
 
     def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate O'Reilly search links (fallback)."""
-        encoded = quote_plus(query)
+        search_term = (kwargs or {}).get("part_description") or query
+        encoded = quote_plus(search_term)
         links = [
             ExternalLink(
-                label=f"Search O'Reilly for '{query}'",
+                label=f"Search O'Reilly for '{search_term}'",
                 url=f"https://www.oreillyauto.com/shop/b/search?q={encoded}",
                 source="oreilly",
                 category="new_parts",

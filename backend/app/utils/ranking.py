@@ -2,9 +2,15 @@
 Ranking and sorting utilities for search results.
 """
 
+import logging
+import re
+
 from app.schemas.search import ExternalLink, MarketListing, SalvageHit
+from app.services.ai_advisor import AIAdvisorResult
 from app.utils.brand_intelligence import get_brand_tier_boost
 from app.utils.query_analysis import QueryAnalysis
+
+logger = logging.getLogger(__name__)
 
 
 def _relevance_score(
@@ -135,6 +141,385 @@ def rank_listings(
             key=lambda x: _relevance_score(x, query, analysis),
             reverse=True,
         )
+
+
+# Known models by make — used to detect wrong-vehicle listings
+_MAKE_MODELS: dict[str, list[str]] = {
+    "porsche": [
+        "911",
+        "944",
+        "924",
+        "928",
+        "968",
+        "356",
+        "914",
+        "cayenne",
+        "panamera",
+        "macan",
+        "taycan",
+        "boxster",
+        "cayman",
+        "718",
+    ],
+    "bmw": [
+        "e30",
+        "e36",
+        "e46",
+        "e90",
+        "e92",
+        "f30",
+        "g20",
+        "e39",
+        "e60",
+        "f10",
+        "e34",
+        "x3",
+        "x5",
+        "x1",
+        "x7",
+        "m3",
+        "m5",
+        "z3",
+        "z4",
+        "i3",
+        "i4",
+        "ix",
+    ],
+    "mercedes": [
+        "c-class",
+        "e-class",
+        "s-class",
+        "a-class",
+        "cla",
+        "cls",
+        "gle",
+        "glc",
+        "gla",
+        "glb",
+        "gls",
+        "amg gt",
+        "sl",
+        "slk",
+        "w203",
+        "w204",
+        "w205",
+        "w211",
+        "w212",
+        "w213",
+        "w220",
+        "w221",
+        "w222",
+        "w223",
+    ],
+    "audi": [
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "a8",
+        "q3",
+        "q5",
+        "q7",
+        "q8",
+        "tt",
+        "r8",
+        "rs3",
+        "rs4",
+        "rs5",
+        "rs6",
+        "rs7",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+    ],
+    "volkswagen": [
+        "golf",
+        "jetta",
+        "passat",
+        "tiguan",
+        "atlas",
+        "arteon",
+        "beetle",
+        "gti",
+        "r32",
+        "cc",
+        "touareg",
+        "id.4",
+    ],
+    "honda": [
+        "civic",
+        "accord",
+        "cr-v",
+        "hr-v",
+        "pilot",
+        "odyssey",
+        "fit",
+        "insight",
+        "element",
+        "s2000",
+        "prelude",
+        "integra",
+    ],
+    "toyota": [
+        "camry",
+        "corolla",
+        "rav4",
+        "highlander",
+        "tacoma",
+        "tundra",
+        "4runner",
+        "supra",
+        "86",
+        "prius",
+        "sienna",
+        "celica",
+        "mr2",
+        "land cruiser",
+    ],
+    "ford": [
+        "mustang",
+        "f-150",
+        "f-250",
+        "f-350",
+        "explorer",
+        "escape",
+        "bronco",
+        "ranger",
+        "edge",
+        "fusion",
+        "focus",
+        "taurus",
+        "expedition",
+        "maverick",
+    ],
+    "chevrolet": [
+        "camaro",
+        "corvette",
+        "silverado",
+        "tahoe",
+        "suburban",
+        "equinox",
+        "traverse",
+        "malibu",
+        "impala",
+        "blazer",
+        "colorado",
+        "trailblazer",
+    ],
+    "subaru": ["wrx", "sti", "outback", "forester", "crosstrek", "impreza", "legacy", "brz", "ascent", "baja"],
+    "nissan": [
+        "altima",
+        "maxima",
+        "sentra",
+        "370z",
+        "350z",
+        "300zx",
+        "240sx",
+        "rogue",
+        "pathfinder",
+        "frontier",
+        "titan",
+        "gt-r",
+        "leaf",
+    ],
+    "mazda": ["miata", "mx-5", "mazda3", "mazda6", "cx-5", "cx-9", "cx-30", "rx-7", "rx-8"],
+    "volvo": [
+        "240",
+        "740",
+        "940",
+        "s40",
+        "s60",
+        "s80",
+        "s90",
+        "v40",
+        "v60",
+        "v70",
+        "v90",
+        "xc40",
+        "xc60",
+        "xc90",
+        "c30",
+        "c70",
+        "850",
+    ],
+    "hyundai": ["elantra", "sonata", "tucson", "santa fe", "kona", "palisade", "veloster", "genesis"],
+    "kia": ["forte", "optima", "k5", "sorento", "sportage", "telluride", "soul", "stinger", "seltos", "sedona"],
+}
+
+# All known automotive makes (for cross-make filtering)
+_KNOWN_MAKES: set[str] = set(_MAKE_MODELS.keys())
+_KNOWN_MAKES.update(
+    {
+        "acura",
+        "alfa romeo",
+        "buick",
+        "cadillac",
+        "chrysler",
+        "dodge",
+        "fiat",
+        "genesis",
+        "gmc",
+        "infiniti",
+        "jaguar",
+        "jeep",
+        "land rover",
+        "lexus",
+        "lincoln",
+        "mini",
+        "mitsubishi",
+        "ram",
+        "saab",
+        "scion",
+        "tesla",
+    }
+)
+
+# Aliases: map common alternate names to the canonical make
+_MAKE_ALIASES: dict[str, str] = {
+    "vw": "volkswagen",
+    "chevy": "chevrolet",
+    "mercedes-benz": "mercedes",
+    "merc": "mercedes",
+}
+
+# Short make names that need word-boundary matching to avoid false positives
+# (e.g. "ram" in "ceramic", "kia" in "akia", "mini" in "minimize")
+_SHORT_MAKES: set[str] = {"ram", "kia", "mini", "gmc", "fiat", "saab"}
+
+
+def _mentions_make(text_lower: str, make: str) -> bool:
+    """Check if text mentions a make, using word boundaries for short names."""
+    if make in _SHORT_MAKES or len(make) <= 3:
+        return bool(re.search(rf"\b{re.escape(make)}\b", text_lower))
+    return make in text_lower
+
+
+def filter_market_listings(
+    listings: list[MarketListing],
+    analysis: AIAdvisorResult | None = None,
+    known_part_numbers: list[str] | None = None,
+) -> list[MarketListing]:
+    """
+    Filter out market listings that are clearly for the wrong vehicle.
+
+    Three-stage filter:
+    1. Same-make wrong-model: "Porsche 911" when searching Porsche 944
+    2. Cross-make: "Audi A5 Engine Mount" when searching Porsche 944
+    3. No-make vehicle-specific: "URO Parts 8R0199381C Engine Mount" (no make,
+       no matching OEM PN) when searching Porsche 944
+
+    Keeps generic/universal listings that don't mention any specific make
+    ONLY when we don't have enough context to know they're wrong, or when
+    their part numbers match known OEM/interchange numbers.
+    """
+    if not analysis or not analysis.vehicle_make:
+        return listings
+
+    make_lower = analysis.vehicle_make.lower().strip()
+    # Resolve alias to canonical
+    make_canonical = _MAKE_ALIASES.get(make_lower, make_lower)
+    model_lower = (analysis.vehicle_model or "").lower().strip()
+
+    # --- Stage 1: Same-make wrong-model filter ---
+    if model_lower:
+        known_models = _MAKE_MODELS.get(make_canonical, [])
+        wrong_models = set()
+        for m in known_models:
+            if m.lower() != model_lower and m.lower() not in model_lower and model_lower not in m.lower():
+                wrong_models.add(m.lower())
+    else:
+        wrong_models = set()
+
+    # Build the set of "other makes" to check for cross-make contamination
+    # Include both canonical names and aliases that map to different makes
+    target_names = {make_canonical, make_lower}
+    # Also include aliases that resolve to our target
+    for alias, canonical in _MAKE_ALIASES.items():
+        if canonical == make_canonical:
+            target_names.add(alias)
+
+    other_makes = set()
+    for m in _KNOWN_MAKES:
+        canon = _MAKE_ALIASES.get(m, m)
+        if canon != make_canonical:
+            other_makes.add(m)
+    # Also add aliases that resolve to non-target makes
+    for alias, canonical in _MAKE_ALIASES.items():
+        if canonical != make_canonical:
+            other_makes.add(alias)
+
+    # --- Stage 3 prep: known part numbers for vehicle-specific filtering ---
+    # Combine AI OEM part numbers + caller-provided part numbers (interchange, extracted)
+    oem_pns_upper: set[str] = set()
+    if model_lower:  # Only apply stage 3 for vehicle-specific searches
+        if analysis.oem_part_numbers:
+            oem_pns_upper.update(pn.upper() for pn in analysis.oem_part_numbers)
+        if known_part_numbers:
+            oem_pns_upper.update(pn.upper() for pn in known_part_numbers)
+
+    filtered = []
+    removed_count = 0
+    for listing in listings:
+        title_lower = listing.title.lower()
+
+        # --- Stage 1: Same-make wrong-model ---
+        if wrong_models and _mentions_make(title_lower, make_canonical):
+            # If listing mentions the target model, always keep
+            if model_lower and model_lower in title_lower:
+                filtered.append(listing)
+                continue
+
+            # Check for wrong models
+            is_wrong_model = False
+            for wrong in wrong_models:
+                if re.search(rf"\b{re.escape(wrong)}\b", title_lower):
+                    is_wrong_model = True
+                    break
+            if is_wrong_model:
+                removed_count += 1
+                continue
+
+        # --- Stage 2: Cross-make filter ---
+        # If listing doesn't mention target make, check if it mentions another known make
+        mentions_target = any(_mentions_make(title_lower, name) for name in target_names)
+        if not mentions_target:
+            mentions_other = False
+            for other in other_makes:
+                if _mentions_make(title_lower, other):
+                    mentions_other = True
+                    break
+            if mentions_other:
+                removed_count += 1
+                continue
+
+            # --- Stage 3: No-make vehicle-specific filter ---
+            # Listing mentions no make at all. If we have OEM part numbers for
+            # the target vehicle, only keep it if a listing PN matches.
+            if oem_pns_upper:
+                listing_pns_upper = {pn.upper() for pn in listing.part_numbers if pn}
+                if listing_pns_upper:
+                    if not (listing_pns_upper & oem_pns_upper):
+                        removed_count += 1
+                        continue
+                else:
+                    # No extracted PNs — check if title text contains any OEM PN
+                    title_upper = listing.title.upper()
+                    if not any(pn in title_upper for pn in oem_pns_upper):
+                        removed_count += 1
+                        continue
+
+        filtered.append(listing)
+
+    if removed_count > 0:
+        logger.info(
+            f"Filtered {removed_count} wrong-vehicle market listings "
+            f"(target: {analysis.vehicle_make} {analysis.vehicle_model or '(any)'})"
+        )
+
+    return filtered
 
 
 def filter_salvage_hits(

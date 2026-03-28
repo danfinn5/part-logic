@@ -1,23 +1,20 @@
-"""Tests for the new connectors (AutoZone, O'Reilly, NAPA, LKQ, Advance Auto)."""
-
-from unittest import mock
+"""Tests for the retail connector link generators (AutoZone, O'Reilly, NAPA, LKQ, Advance Auto)."""
 
 import pytest
 
 
 class TestAutoZoneConnector:
     @pytest.mark.asyncio
-    async def test_generates_links_when_scrape_disabled(self):
-        with mock.patch("app.config.settings.scrape_enabled", False):
-            from app.ingestion.autozone import AutoZoneConnector
+    async def test_generates_links(self):
+        from app.ingestion.autozone import AutoZoneConnector
 
-            connector = AutoZoneConnector()
-            result = await connector.search("brake pads")
+        connector = AutoZoneConnector()
+        result = await connector.search("brake pads")
 
-            assert result["error"] is None
-            assert result["market_listings"] == []
-            assert len(result["external_links"]) >= 1
-            assert "autozone.com" in result["external_links"][0].url
+        assert result["error"] is None
+        assert result["market_listings"] == []
+        assert len(result["external_links"]) >= 1
+        assert "autozone.com" in result["external_links"][0].url
 
     @pytest.mark.asyncio
     async def test_source_name(self):
@@ -27,29 +24,39 @@ class TestAutoZoneConnector:
 
     @pytest.mark.asyncio
     async def test_part_number_links(self):
-        with mock.patch("app.config.settings.scrape_enabled", False):
-            from app.ingestion.autozone import AutoZoneConnector
+        from app.ingestion.autozone import AutoZoneConnector
 
-            connector = AutoZoneConnector()
-            result = await connector.search("brake pads", part_numbers=["BP100"])
+        connector = AutoZoneConnector()
+        result = await connector.search("brake pads", part_numbers=["BP100"])
 
-            assert len(result["external_links"]) == 2
-            urls = [link.url for link in result["external_links"]]
-            assert any("BP100" in u for u in urls)
+        assert len(result["external_links"]) == 2
+        urls = [link.url for link in result["external_links"]]
+        assert any("BP100" in u for u in urls)
+
+    @pytest.mark.asyncio
+    async def test_uses_part_description(self):
+        from app.ingestion.autozone import AutoZoneConnector
+
+        connector = AutoZoneConnector()
+        result = await connector.search("34116799166", part_description="brake pads")
+
+        assert (
+            "brake+pads" in result["external_links"][0].url.lower()
+            or "brake%20pads" in result["external_links"][0].url.lower()
+        )
 
 
 class TestOReillyConnector:
     @pytest.mark.asyncio
-    async def test_generates_links_when_scrape_disabled(self):
-        with mock.patch("app.config.settings.scrape_enabled", False):
-            from app.ingestion.oreilly import OReillyConnector
+    async def test_generates_links(self):
+        from app.ingestion.oreilly import OReillyConnector
 
-            connector = OReillyConnector()
-            result = await connector.search("oil filter")
+        connector = OReillyConnector()
+        result = await connector.search("oil filter")
 
-            assert result["error"] is None
-            assert len(result["external_links"]) >= 1
-            assert "oreillyauto.com" in result["external_links"][0].url
+        assert result["error"] is None
+        assert len(result["external_links"]) >= 1
+        assert "oreillyauto.com" in result["external_links"][0].url
 
     @pytest.mark.asyncio
     async def test_source_name(self):
@@ -60,16 +67,15 @@ class TestOReillyConnector:
 
 class TestNAPAConnector:
     @pytest.mark.asyncio
-    async def test_generates_links_when_scrape_disabled(self):
-        with mock.patch("app.config.settings.scrape_enabled", False):
-            from app.ingestion.napa import NAPAConnector
+    async def test_generates_links(self):
+        from app.ingestion.napa import NAPAConnector
 
-            connector = NAPAConnector()
-            result = await connector.search("spark plugs")
+        connector = NAPAConnector()
+        result = await connector.search("spark plugs")
 
-            assert result["error"] is None
-            assert len(result["external_links"]) >= 1
-            assert "napaonline.com" in result["external_links"][0].url
+        assert result["error"] is None
+        assert len(result["external_links"]) >= 1
+        assert "napaonline.com" in result["external_links"][0].url
 
     @pytest.mark.asyncio
     async def test_source_name(self):
@@ -80,18 +86,17 @@ class TestNAPAConnector:
 
 class TestLKQConnector:
     @pytest.mark.asyncio
-    async def test_generates_links_when_scrape_disabled(self):
-        with mock.patch("app.config.settings.scrape_enabled", False):
-            from app.ingestion.lkq import LKQConnector
+    async def test_generates_links(self):
+        from app.ingestion.lkq import LKQConnector
 
-            connector = LKQConnector()
-            result = await connector.search("headlight assembly")
+        connector = LKQConnector()
+        result = await connector.search("headlight assembly")
 
-            assert result["error"] is None
-            assert len(result["external_links"]) >= 1
-            link = result["external_links"][0]
-            assert "lkqonline.com" in link.url
-            assert link.category == "used_parts"
+        assert result["error"] is None
+        assert len(result["external_links"]) >= 1
+        link = result["external_links"][0]
+        assert "lkqonline.com" in link.url
+        assert link.category == "used_parts"
 
     @pytest.mark.asyncio
     async def test_source_name(self):
@@ -102,16 +107,15 @@ class TestLKQConnector:
 
 class TestAdvanceAutoConnector:
     @pytest.mark.asyncio
-    async def test_generates_links_when_scrape_disabled(self):
-        with mock.patch("app.config.settings.scrape_enabled", False):
-            from app.ingestion.advanceauto import AdvanceAutoConnector
+    async def test_generates_links(self):
+        from app.ingestion.advanceauto import AdvanceAutoConnector
 
-            connector = AdvanceAutoConnector()
-            result = await connector.search("alternator")
+        connector = AdvanceAutoConnector()
+        result = await connector.search("alternator")
 
-            assert result["error"] is None
-            assert len(result["external_links"]) >= 1
-            assert "advanceautoparts.com" in result["external_links"][0].url
+        assert result["error"] is None
+        assert len(result["external_links"]) >= 1
+        assert "advanceautoparts.com" in result["external_links"][0].url
 
     @pytest.mark.asyncio
     async def test_source_name(self):

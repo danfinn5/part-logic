@@ -38,13 +38,13 @@ class TestDeduplicateLinks:
         result = deduplicate_links(links)
         assert len(result) == 2
 
-    def test_same_url_different_source_kept(self):
+    def test_same_url_different_source_deduped(self):
         links = [
             ExternalLink(label="A", url="https://example.com/1", source="rockauto"),
             ExternalLink(label="A", url="https://example.com/1", source="partsgeek"),
         ]
         result = deduplicate_links(links)
-        assert len(result) == 2
+        assert len(result) == 1
 
     def test_empty_input(self):
         assert deduplicate_links([]) == []

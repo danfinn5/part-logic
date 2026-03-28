@@ -105,10 +105,11 @@ class LKQConnector(BaseConnector):
 
     def _generate_links(self, query: str, kwargs: dict = None) -> dict[str, Any]:
         """Generate LKQ search links (fallback)."""
-        encoded = quote_plus(query)
+        search_term = (kwargs or {}).get("part_description") or query
+        encoded = quote_plus(search_term)
         links = [
             ExternalLink(
-                label=f"Search LKQ recycled parts for '{query}'",
+                label=f"Search LKQ recycled parts for '{search_term}'",
                 url=f"https://www.lkqonline.com/search?q={encoded}",
                 source="lkq",
                 category="used_parts",

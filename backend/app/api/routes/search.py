@@ -11,6 +11,7 @@ from typing import Any
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.data.source_registry import get_active_sources as get_registry_sources
@@ -46,7 +47,7 @@ from app.utils.grouping import group_listings, sort_groups
 from app.utils.interchange import InterchangeGroup, build_interchange_group
 from app.utils.part_numbers import extract_part_numbers, normalize_query
 from app.utils.query_analysis import QueryType, analyze_query
-from app.utils.ranking import filter_salvage_hits, group_links_by_category, rank_listings
+from app.utils.ranking import filter_market_listings, filter_salvage_hits, group_links_by_category, rank_listings
 
 logger = logging.getLogger(__name__)
 
@@ -153,11 +154,20 @@ async def get_cached_result(cache_key: str) -> dict | None:
     return None
 
 
+def _json_default(obj):
+    """JSON serializer for Pydantic models and other non-standard types."""
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    if hasattr(obj, "dict"):
+        return obj.dict()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
 async def set_cached_result(cache_key: str, result: dict, ttl: int | None = None):
     """Cache result in Redis."""
     try:
         client = await get_redis_client()
-        await client.setex(cache_key, ttl or settings.cache_ttl_seconds, json.dumps(result))
+        await client.setex(cache_key, ttl or settings.cache_ttl_seconds, json.dumps(result, default=_json_default))
     except Exception as e:
         logger.warning(f"Redis cache write error: {e}")
 
@@ -246,6 +256,36 @@ async def search_parts(
     Results are cached for 6 hours per (source, query) combination.
     Smart routing skips irrelevant sources based on query type.
     """
+    try:
+        return await _search_parts_inner(
+            query=query,
+            zip_code=zip_code,
+            max_results=max_results,
+            sort=sort,
+            vehicle_make=vehicle_make,
+            vehicle_model=vehicle_model,
+            vehicle_year=vehicle_year,
+            vin=vin,
+        )
+    except Exception as e:
+        logger.exception(f"Unhandled error in search_parts: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Search failed: {e}"},
+        )
+
+
+async def _search_parts_inner(
+    query: str,
+    zip_code: str | None,
+    max_results: int,
+    sort: str,
+    vehicle_make: str | None,
+    vehicle_model: str | None,
+    vehicle_year: str | None,
+    vin: str | None,
+):
+    """Inner search implementation, wrapped by search_parts for error handling."""
     search_start = time.monotonic()
 
     # --- VIN Decoding (populate vehicle context) ---
@@ -294,7 +334,7 @@ async def search_parts(
     # --- Interchange Expansion (Phase 5) ---
     interchange_group: InterchangeGroup | None = None
 
-    if analysis.query_type == QueryType.PART_NUMBER and settings.scrape_enabled:
+    if analysis.query_type == QueryType.PART_NUMBER:
         if settings.interchange_enabled:
             try:
                 interchange_group = await build_interchange_group(analysis)
@@ -359,6 +399,7 @@ async def search_parts(
         "max_results": max_results,
         "zip_code": zip_code,
         "part_numbers": all_part_numbers,
+        "part_description": analysis.part_description,
     }
 
     # Pass AI vehicle context to resources connector for make-aware filtering
@@ -420,6 +461,9 @@ async def search_parts(
         if isinstance(result, Exception):
             logger.error(f"Connector raised exception: {result}")
             continue
+        if not isinstance(result, dict):
+            logger.error(f"Connector returned unexpected type: {type(result).__name__}")
+            continue
 
         source_name = result.get("_source", "unknown")
         status = result.get("_status", "error")
@@ -469,6 +513,9 @@ async def search_parts(
     # Deduplication
     market_listings = deduplicate_listings(market_listings)
     external_links = deduplicate_links(external_links)
+
+    # --- Filter wrong-vehicle market listings ---
+    market_listings = filter_market_listings(market_listings, ai_result, known_part_numbers=all_part_numbers)
 
     # --- AI-driven filtering ---
     # Remove salvage results for consumable parts
@@ -618,8 +665,16 @@ async def search_parts(
         "ai_analysis": ai_analysis.model_dump() if ai_analysis else None,
     }
 
-    # Cache overall result
-    await set_cached_result(overall_cache_key, response_data)
+    # Cache overall result with tiered TTL based on quality
+    has_ai = ai_analysis is not None
+    has_listings = len(market_listings) > 0
+    if has_ai and has_listings:
+        cache_ttl = settings.cache_ttl_seconds  # Full result: 6 hours
+    elif has_ai or has_listings:
+        cache_ttl = settings.cache_ttl_degraded_seconds * 2  # Partial: 10 minutes
+    else:
+        cache_ttl = settings.cache_ttl_degraded_seconds  # Poor: 5 minutes
+    await set_cached_result(overall_cache_key, response_data, ttl=cache_ttl)
 
     # --- Record to SQLite (async, non-blocking) ---
     response_time_ms = int((time.monotonic() - search_start) * 1000)
