@@ -54,6 +54,7 @@ class SourceStatus(BaseModel):
     status: Literal["ok", "error", "cached"]
     details: str | None = None
     result_count: int = 0
+    response_time_ms: int | None = None
 
 
 class SearchResults(BaseModel):

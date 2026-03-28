@@ -180,27 +180,38 @@ async def _run_connector(
 ) -> dict[str, Any]:
     """Run a single connector with per-source caching, timeout, and error handling."""
     source_name = connector.source_name
+    start = time.monotonic()
 
     # Check source-specific cache first
     cache_key = connector.get_cache_key(query)
     cached = await get_cached_result(cache_key)
     if cached:
+        elapsed_ms = int((time.monotonic() - start) * 1000)
         logger.info(f"Serving cached {source_name} result")
-        return {**cached, "_status": "cached", "_source": source_name, "_matched_interchange": matched_interchange}
+        return {
+            **cached,
+            "_status": "cached",
+            "_source": source_name,
+            "_matched_interchange": matched_interchange,
+            "_response_time_ms": elapsed_ms,
+        }
 
     try:
         result = await asyncio.wait_for(
             connector.search(query, **extra_kwargs),
             timeout=settings.connector_timeout,
         )
+        elapsed_ms = int((time.monotonic() - start) * 1000)
         # Cache the result
         await set_cached_result(cache_key, result)
         result["_status"] = "ok" if not result.get("error") else "error"
         result["_source"] = source_name
         result["_matched_interchange"] = matched_interchange
+        result["_response_time_ms"] = elapsed_ms
         return result
 
     except TimeoutError:
+        elapsed_ms = int((time.monotonic() - start) * 1000)
         logger.error(f"{source_name} timed out after {settings.connector_timeout}s")
         return {
             "market_listings": [],
@@ -210,8 +221,10 @@ async def _run_connector(
             "_status": "error",
             "_source": source_name,
             "_matched_interchange": matched_interchange,
+            "_response_time_ms": elapsed_ms,
         }
     except Exception as e:
+        elapsed_ms = int((time.monotonic() - start) * 1000)
         logger.error(f"Error querying {source_name}: {e}")
         return {
             "market_listings": [],
@@ -221,6 +234,7 @@ async def _run_connector(
             "_status": "error",
             "_source": source_name,
             "_matched_interchange": matched_interchange,
+            "_response_time_ms": elapsed_ms,
         }
 
 
@@ -469,6 +483,7 @@ async def _search_parts_inner(
         status = result.get("_status", "error")
         error_msg = result.get("error")
         matched_ic = result.get("_matched_interchange")
+        response_time_ms = result.get("_response_time_ms")
 
         # Parse raw dicts back into models if they came from cache
         for item in result.get("market_listings", []):
@@ -504,6 +519,7 @@ async def _search_parts_inner(
                 status=status,
                 details=error_msg or "Success",
                 result_count=result_count,
+                response_time_ms=response_time_ms,
             )
         )
 
