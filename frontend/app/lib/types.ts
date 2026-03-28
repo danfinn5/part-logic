@@ -34,9 +34,10 @@ export interface ExternalLink {
 
 export interface SourceStatus {
   source: string;
-  status: 'ok' | 'error' | 'cached';
+  status: "ok" | "error" | "cached";
   details?: string;
   result_count: number;
+  response_time_ms?: number | null;
 }
 
 export interface InterchangeInfo {
@@ -200,9 +201,9 @@ export interface PriceAlert {
   created_at: string;
 }
 
-export type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'value';
+export type SortOption = "relevance" | "price_asc" | "price_desc" | "value";
 
-export type ViewMode = 'comparison' | 'list';
+export type ViewMode = "comparison" | "list";
 
 /* ── Price Tracking Types ────────────────────────────────────────── */
 

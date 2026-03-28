@@ -1,48 +1,53 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { SearchResponse, SortOption, ViewMode, PriceTrend } from './lib/types';
-import { searchParts, getPriceTrends, decodeVin } from './lib/api';
-import AISummary from './components/AISummary';
-import AIRecommendations from './components/AIRecommendations';
-import ComparisonView from './components/ComparisonView';
-import ListingGrid from './components/ListingGrid';
-import SalvageSection from './components/SalvageSection';
-import ExternalLinksSection from './components/ExternalLinksSection';
-import SourceStatusBar from './components/SourceStatusBar';
-import LoadingSkeleton from './components/LoadingSkeleton';
-import PriceChart from './components/PriceChart';
-import SavedSearches from './components/SavedSearches';
-import { saveSearch as saveSearchApi } from './lib/api';
+import { useState, useEffect } from "react";
+import { SearchResponse, SortOption, ViewMode, PriceTrend } from "./lib/types";
+import { searchParts, getPriceTrends, decodeVin } from "./lib/api";
+import AISummary from "./components/AISummary";
+import AIRecommendations from "./components/AIRecommendations";
+import ComparisonView from "./components/ComparisonView";
+import ListingGrid from "./components/ListingGrid";
+import SalvageSection from "./components/SalvageSection";
+import ExternalLinksSection from "./components/ExternalLinksSection";
+import SourceStatusBar from "./components/SourceStatusBar";
+import LoadingSkeleton from "./components/LoadingSkeleton";
+import PriceChart from "./components/PriceChart";
+import SavedSearches from "./components/SavedSearches";
+import { saveSearch as saveSearchApi } from "./lib/api";
 
 function getPrimaryPartNumber(data: SearchResponse | null): string | null {
   if (!data) return null;
   const ai = data.ai_analysis;
   if (ai?.oem_part_numbers?.length) return ai.oem_part_numbers[0];
   if (ai?.recommendations?.length) return ai.recommendations[0].part_number;
-  if (data.extracted_part_numbers?.length) return data.extracted_part_numbers[0];
+  if (data.extracted_part_numbers?.length)
+    return data.extracted_part_numbers[0];
   return null;
 }
 
 export default function Home() {
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortOption>('value');
-  const [viewMode, setViewMode] = useState<ViewMode>('comparison');
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortOption>("value");
+  const [viewMode, setViewMode] = useState<ViewMode>("comparison");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SearchResponse | null>(null);
   const [priceTrends, setPriceTrends] = useState<PriceTrend[]>([]);
   const [priceChartLoading, setPriceChartLoading] = useState(false);
-  const [vehicleMake, setVehicleMake] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('');
-  const [vehicleYear, setVehicleYear] = useState('');
-  const [vin, setVin] = useState('');
+  const [vehicleMake, setVehicleMake] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [vehicleYear, setVehicleYear] = useState("");
+  const [vin, setVin] = useState("");
   const [vinDecoding, setVinDecoding] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const vehicleContext =
     vehicleMake || vehicleModel || vehicleYear
-      ? { make: vehicleMake.trim() || undefined, model: vehicleModel.trim() || undefined, year: vehicleYear.trim() || undefined }
+      ? {
+          make: vehicleMake.trim() || undefined,
+          model: vehicleModel.trim() || undefined,
+          year: vehicleYear.trim() || undefined,
+        }
       : undefined;
 
   const handleSaveSearch = async () => {
@@ -58,7 +63,10 @@ export default function Home() {
     setSaved(true);
   };
 
-  const handleRunSavedSearch = (q: string, vehicle?: { make?: string; model?: string; year?: string }) => {
+  const handleRunSavedSearch = (
+    q: string,
+    vehicle?: { make?: string; model?: string; year?: string },
+  ) => {
     setQuery(q);
     if (vehicle?.make) setVehicleMake(vehicle.make);
     if (vehicle?.model) setVehicleModel(vehicle.model);
@@ -71,7 +79,7 @@ export default function Home() {
         const result = await searchParts(q, sort, vehicle);
         setData(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setLoading(false);
       }
@@ -103,10 +111,15 @@ export default function Home() {
     setError(null);
     setSaved(false);
     try {
-      const result = await searchParts(query, sort, vehicleContext, vin.length === 17 ? vin : undefined);
+      const result = await searchParts(
+        query,
+        sort,
+        vehicleContext,
+        vin.length === 17 ? vin : undefined,
+      );
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -118,10 +131,15 @@ export default function Home() {
       setLoading(true);
       setError(null);
       try {
-        const result = await searchParts(pn, sort, vehicleContext, vin.length === 17 ? vin : undefined);
+        const result = await searchParts(
+          pn,
+          sort,
+          vehicleContext,
+          vin.length === 17 ? vin : undefined,
+        );
         setData(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setLoading(false);
       }
@@ -147,7 +165,12 @@ export default function Home() {
   const hasAI = ai && (ai.recommendations?.length ?? 0) > 0;
   const hasListings = data && data.results.market_listings.length > 0;
   const hasSalvage = data && data.results.salvage_hits.length > 0;
-  const hasSummary = ai && (ai.notes || ai.vehicle_make || ai.part_type || (ai.oem_part_numbers?.length ?? 0) > 0);
+  const hasSummary =
+    ai &&
+    (ai.notes ||
+      ai.vehicle_make ||
+      ai.part_type ||
+      (ai.oem_part_numbers?.length ?? 0) > 0);
   const hasResults = hasAI || hasListings || hasSalvage;
   const primaryPartNumber = data ? getPrimaryPartNumber(data) : null;
 
@@ -156,19 +179,22 @@ export default function Home() {
       {/* Hero search area */}
       {!data && (
         <div className="pt-20 pb-16 text-center">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight mb-3">
-            Find any part. <span className="text-blue-600">Best price.</span>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight mb-3">
+            Find any part.{" "}
+            <span className="text-blue-600 dark:text-blue-400">
+              Best price.
+            </span>
           </h1>
-          <p className="text-lg text-slate-500 mb-10 max-w-xl mx-auto">
-            Search 80+ retailers, OEM dealers, salvage yards, and specialty shops
-            at once. Compare prices and track trends over time.
+          <p className="text-lg text-slate-500 dark:text-zinc-400 mb-10 max-w-xl mx-auto">
+            Search 80+ retailers, OEM dealers, salvage yards, and specialty
+            shops at once. Compare prices and track trends over time.
           </p>
           <div className="max-w-2xl mx-auto flex gap-3">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="Part number, description, or OEM number..."
               className="input-field flex-1 !py-3.5 !text-base !rounded-xl shadow-sm"
               autoFocus
@@ -180,14 +206,28 @@ export default function Home() {
             >
               {loading ? (
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
-              ) : 'Search'}
+              ) : (
+                "Search"
+              )}
             </button>
           </div>
           <details className="mt-6 text-left max-w-2xl mx-auto">
-            <summary className="cursor-pointer text-sm text-slate-500 hover:text-slate-700">
+            <summary className="cursor-pointer text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200">
               My vehicle (optional — improves recommendations)
             </summary>
             <div className="mt-3 flex flex-wrap gap-3">
@@ -200,7 +240,9 @@ export default function Home() {
                 maxLength={17}
               />
               {vinDecoding && (
-                <span className="text-xs text-blue-500 w-full">Decoding VIN...</span>
+                <span className="text-xs text-blue-500 w-full">
+                  Decoding VIN...
+                </span>
               )}
               <input
                 type="text"
@@ -226,13 +268,19 @@ export default function Home() {
               />
             </div>
           </details>
-          <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-400">
+          <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-400 dark:text-zinc-500">
             <span>Try:</span>
-            {['11427566327', 'BMW E46 oil filter', 'Porsche 997 brake pads'].map((ex) => (
+            {[
+              "11427566327",
+              "BMW E46 oil filter",
+              "Porsche 997 brake pads",
+            ].map((ex) => (
               <button
                 key={ex}
-                onClick={() => { setQuery(ex); }}
-                className="text-slate-500 hover:text-blue-600 transition-colors bg-transparent border-none cursor-pointer underline decoration-slate-300 hover:decoration-blue-400"
+                onClick={() => {
+                  setQuery(ex);
+                }}
+                className="text-slate-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-transparent border-none cursor-pointer underline decoration-slate-300 dark:decoration-zinc-600 hover:decoration-blue-400"
               >
                 {ex}
               </button>
@@ -249,11 +297,13 @@ export default function Home() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="Part number, description, or OEM number..."
               className="input-field w-full sm:w-auto sm:flex-1 min-w-[200px]"
             />
-            <span className="text-slate-400 text-sm hidden sm:inline">Vehicle:</span>
+            <span className="text-slate-400 dark:text-zinc-500 text-sm hidden sm:inline">
+              Vehicle:
+            </span>
             <input
               type="text"
               value={vin}
@@ -303,7 +353,7 @@ export default function Home() {
               disabled={loading || !query.trim()}
               className="btn-primary"
             >
-              {loading ? 'Searching...' : 'Search'}
+              {loading ? "Searching..." : "Search"}
             </button>
           </div>
         </div>
@@ -311,8 +361,8 @@ export default function Home() {
 
       {/* Error */}
       {error && (
-        <div className="card border-red-200 bg-red-50 px-4 py-3 mb-6">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="card border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-4 py-3 mb-6">
+          <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
         </div>
       )}
 
@@ -324,13 +374,18 @@ export default function Home() {
           {/* Query metadata */}
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {data.cached && (
-              <span className="badge bg-blue-100 text-blue-700">Cached result</span>
+              <span className="badge bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                Cached result
+              </span>
             )}
             {data.extracted_part_numbers.length > 0 && (
-              <div className="flex items-center gap-1.5 text-slate-500">
+              <div className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400">
                 <span>Detected:</span>
                 {data.extracted_part_numbers.map((pn) => (
-                  <code key={pn} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-mono">
+                  <code
+                    key={pn}
+                    className="px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded text-xs font-mono"
+                  >
                     {pn}
                   </code>
                 ))}
@@ -342,28 +397,43 @@ export default function Home() {
                 disabled={saved}
                 className={`text-xs flex items-center gap-1 px-2 py-1 rounded border cursor-pointer transition-colors ${
                   saved
-                    ? 'bg-green-50 text-green-600 border-green-200'
-                    : 'bg-white text-slate-500 border-slate-200 hover:text-blue-600 hover:border-blue-200'
+                    ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+                    : "bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-700 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-700"
                 }`}
               >
-                <svg className="w-3.5 h-3.5" fill={saved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill={saved ? "currentColor" : "none"}
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                  />
                 </svg>
-                {saved ? 'Saved' : 'Save'}
+                {saved ? "Saved" : "Save"}
               </button>
-              <SavedSearches onRunSearch={handleRunSavedSearch} currentQuery={query} />
+              <SavedSearches
+                onRunSearch={handleRunSavedSearch}
+                currentQuery={query}
+              />
             </div>
           </div>
 
           {/* 1. Summary at top — vehicle, part, expert notes, interchange, brand breakdown */}
           {hasSummary && ai && (
-            <AISummary analysis={ai} intelligence={intel} onSearchPartNumber={handleSearchPartNumber} />
+            <AISummary
+              analysis={ai}
+              intelligence={intel}
+              onSearchPartNumber={handleSearchPartNumber}
+            />
           )}
 
           {/* 2. AI Recommendations */}
-          {hasAI && ai && (
-            <AIRecommendations analysis={ai} />
-          )}
+          {hasAI && ai && <AIRecommendations analysis={ai} />}
 
           {/* 3. Price history for the part(s) found */}
           {primaryPartNumber != null && (
@@ -386,7 +456,8 @@ export default function Home() {
                 <div className="card p-6 text-center text-slate-500 text-sm">
                   <p>No price history yet for this part.</p>
                   <p className="mt-1">
-                    There isn’t a CamelCamelCamel-style tracker for car parts; our chart fills in as you and others run searches.
+                    There isn’t a CamelCamelCamel-style tracker for car parts;
+                    our chart fills in as you and others run searches.
                   </p>
                 </div>
               )}
@@ -400,26 +471,31 @@ export default function Home() {
                 <h2 className="section-title">
                   Part listings
                   <span className="text-sm font-normal text-slate-400 ml-2">
-                    {data.results.market_listings.length} listings from {new Set(data.results.market_listings.map(l => l.source)).size} sources
+                    {data.results.market_listings.length} listings from{" "}
+                    {
+                      new Set(data.results.market_listings.map((l) => l.source))
+                        .size
+                    }{" "}
+                    sources
                   </span>
                 </h2>
-                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                <div className="flex rounded-lg border border-slate-200 dark:border-zinc-700 overflow-hidden">
                   <button
-                    onClick={() => setViewMode('comparison')}
+                    onClick={() => setViewMode("comparison")}
                     className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                      viewMode === 'comparison'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                      viewMode === "comparison"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800"
                     }`}
                   >
                     Grouped
                   </button>
                   <button
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 ${
-                      viewMode === 'list'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                    onClick={() => setViewMode("list")}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-zinc-700 ${
+                      viewMode === "list"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800"
                     }`}
                   >
                     All
@@ -427,10 +503,11 @@ export default function Home() {
                 </div>
               </div>
 
-              {viewMode === 'comparison' && data.grouped_listings.length > 0 && (
-                <ComparisonView groups={data.grouped_listings} />
-              )}
-              {viewMode === 'list' && (
+              {viewMode === "comparison" &&
+                data.grouped_listings.length > 0 && (
+                  <ComparisonView groups={data.grouped_listings} />
+                )}
+              {viewMode === "list" && (
                 <ListingGrid listings={data.results.market_listings} />
               )}
             </section>
@@ -447,11 +524,14 @@ export default function Home() {
           {/* Warnings (collapsed) */}
           {data.warnings.length > 0 && (
             <details className="text-sm">
-              <summary className="cursor-pointer text-slate-400 hover:text-slate-600 transition-colors">
-                {data.warnings.length} source note{data.warnings.length > 1 ? 's' : ''}
+              <summary className="cursor-pointer text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">
+                {data.warnings.length} source note
+                {data.warnings.length > 1 ? "s" : ""}
               </summary>
-              <ul className="mt-2 ml-4 space-y-1 text-slate-400 text-xs list-disc">
-                {data.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              <ul className="mt-2 ml-4 space-y-1 text-slate-400 dark:text-zinc-500 text-xs list-disc">
+                {data.warnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
               </ul>
             </details>
           )}
@@ -460,8 +540,12 @@ export default function Home() {
           {!hasResults && (
             <div className="card py-16 text-center">
               <div className="text-4xl mb-3">&#128269;</div>
-              <p className="text-slate-500">No results found for &ldquo;{data.query}&rdquo;</p>
-              <p className="text-sm text-slate-400 mt-1">Try a different part number or description.</p>
+              <p className="text-slate-500 dark:text-zinc-400">
+                No results found for &ldquo;{data.query}&rdquo;
+              </p>
+              <p className="text-sm text-slate-400 dark:text-zinc-500 mt-1">
+                Try a different part number or description.
+              </p>
             </div>
           )}
 
