@@ -154,11 +154,20 @@ async def get_cached_result(cache_key: str) -> dict | None:
     return None
 
 
+def _json_default(obj):
+    """JSON serializer for Pydantic models and other non-standard types."""
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    if hasattr(obj, "dict"):
+        return obj.dict()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
 async def set_cached_result(cache_key: str, result: dict, ttl: int | None = None):
     """Cache result in Redis."""
     try:
         client = await get_redis_client()
-        await client.setex(cache_key, ttl or settings.cache_ttl_seconds, json.dumps(result))
+        await client.setex(cache_key, ttl or settings.cache_ttl_seconds, json.dumps(result, default=_json_default))
     except Exception as e:
         logger.warning(f"Redis cache write error: {e}")
 
@@ -325,7 +334,7 @@ async def _search_parts_inner(
     # --- Interchange Expansion (Phase 5) ---
     interchange_group: InterchangeGroup | None = None
 
-    if analysis.query_type == QueryType.PART_NUMBER and settings.scrape_enabled:
+    if analysis.query_type == QueryType.PART_NUMBER:
         if settings.interchange_enabled:
             try:
                 interchange_group = await build_interchange_group(analysis)
@@ -451,6 +460,9 @@ async def _search_parts_inner(
     for result in results:
         if isinstance(result, Exception):
             logger.error(f"Connector raised exception: {result}")
+            continue
+        if not isinstance(result, dict):
+            logger.error(f"Connector returned unexpected type: {type(result).__name__}")
             continue
 
         source_name = result.get("_source", "unknown")

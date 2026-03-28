@@ -17,12 +17,11 @@ def deduplicate_listings(listings: list[MarketListing]) -> list[MarketListing]:
 
 
 def deduplicate_links(links: list[ExternalLink]) -> list[ExternalLink]:
-    """Deduplicate ExternalLink results by (source, url) pair."""
+    """Deduplicate ExternalLink results by URL, keeping first occurrence."""
     seen: set = set()
     unique: list[ExternalLink] = []
     for link in links:
-        key = (link.source, link.url)
-        if key not in seen:
-            seen.add(key)
+        if link.url not in seen:
+            seen.add(link.url)
             unique.append(link)
     return unique

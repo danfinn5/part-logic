@@ -201,19 +201,20 @@ def _generate_buy_links(part_number: str, retailers: list[str]) -> list[dict]:
 # ── Provider selection ───────────────────────────────────────────────────
 
 
-def _get_provider() -> str | None:
+def _get_providers() -> list[str]:
     """
-    Determine which AI provider to use.
+    Return available AI providers in priority order.
 
-    Priority: Gemini (free tier) > OpenAI (cheapest paid) > Anthropic > None.
+    Priority: Gemini (free tier) > OpenAI (cheapest paid) > Anthropic.
     """
+    providers = []
     if settings.gemini_api_key:
-        return "gemini"
+        providers.append("gemini")
     if settings.openai_api_key:
-        return "openai"
+        providers.append("openai")
     if settings.anthropic_api_key:
-        return "anthropic"
-    return None
+        providers.append("anthropic")
+    return providers
 
 
 def _user_message(query: str, vehicle_make: str | None, vehicle_model: str | None, vehicle_year: str | None) -> str:
@@ -240,23 +241,26 @@ async def get_ai_recommendations(
     if not settings.ai_synthesis_enabled:
         return AIAdvisorResult(error="AI synthesis is disabled")
 
-    provider = _get_provider()
-    if not provider:
+    providers = _get_providers()
+    if not providers:
         return AIAdvisorResult(
             error="No AI API key configured. Set GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY in .env"
         )
 
     user_msg = _user_message(query, vehicle_make, vehicle_model, vehicle_year)
-    try:
-        if provider == "gemini":
-            return await _call_gemini(user_msg)
-        elif provider == "openai":
-            return await _call_openai(user_msg)
-        else:
-            return await _call_anthropic(user_msg)
-    except Exception as e:
-        logger.error(f"AI advisor ({provider}) failed: {e}")
-        return AIAdvisorResult(error=str(e))
+    callers = {"gemini": _call_gemini, "openai": _call_openai, "anthropic": _call_anthropic}
+
+    for provider in providers:
+        try:
+            result = await callers[provider](user_msg)
+            if result.error is None:
+                return result
+            logger.warning(f"AI advisor ({provider}) returned error: {result.error}, trying next provider")
+        except Exception as e:
+            logger.warning(f"AI advisor ({provider}) failed: {e}, trying next provider")
+
+    # All providers failed — return last error
+    return AIAdvisorResult(error=f"All AI providers failed ({', '.join(providers)})")
 
 
 # ── Gemini provider (free tier) ──────────────────────────────────────────
