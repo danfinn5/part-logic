@@ -22,6 +22,34 @@ npm run lint      # ESLint
 
 **API endpoints:** `GET /search?query=...&zip_code=...&max_results=...&sort=value|relevance|price_asc|price_desc`, `GET /docs`, `GET /health`
 
+## Testing & Linting
+
+**Backend tests** (from `backend/`):
+```bash
+source venv/bin/activate
+python3.12 -m pytest tests/ -v --tb=short    # Full suite
+python3.12 -m pytest tests/test_connectors.py  # Single file
+```
+
+**Backend linting** (from `backend/`):
+```bash
+ruff check .          # Lint (fix with --fix)
+ruff format .         # Format
+```
+Config: `backend/ruff.toml` — Python 3.12 target, 120 char lines, double quotes.
+
+**Frontend** (from `frontend/`):
+```bash
+npm run lint          # ESLint via Next.js
+npm run build         # Type-check + production build
+```
+
+**Custom slash commands:**
+- `/test` — run backend pytest suite with failure analysis
+- `/lint` — ruff + ESLint across both stacks
+- `/check` — full pre-commit check (lint + tests + diff summary)
+- `/new-connector` — guided scaffold for a new data source connector
+
 ## Architecture
 
 ### Connector Pattern
