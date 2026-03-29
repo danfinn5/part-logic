@@ -14,6 +14,7 @@ from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.data.repair_resources import get_resources_for_make
 from app.data.source_registry import get_active_sources as get_registry_sources
 from app.db import record_price_snapshots_bulk, record_search
 from app.ingestion import get_all_connectors, get_connector
@@ -31,14 +32,19 @@ from app.schemas.search import (
     MarketListing,
     Offer,
     PartIntelligence,
+    RecallInfo,
+    RepairResource,
     SalvageHit,
     SearchResponse,
     SearchResults,
     SourceStatus,
+    VehicleIntelligence,
 )
 from app.services.ai_advisor import AIAdvisorResult, get_ai_recommendations
 from app.services.community import CommunityThread, fetch_community_discussions
 from app.services.fitment_checker import check_fitments
+from app.services.knowledge_writer import persist_ai_knowledge
+from app.services.nhtsa import NHTSAResult, fetch_nhtsa_data, filter_relevant
 from app.services.vehicle_resolver import resolve_vehicle_alias
 from app.utils.brand_intelligence import build_brand_comparison
 from app.utils.cross_reference import enrich_with_cross_references
@@ -344,6 +350,11 @@ async def _search_parts_inner(
     community_task = asyncio.create_task(
         _safe_community_fetch(query, analysis.vehicle_hint, analysis.part_description, analysis.brands_found)
     )
+
+    # --- NHTSA Recalls & Complaints (parallel, if vehicle context available) ---
+    nhtsa_task = None
+    if vehicle_make and vehicle_year:
+        nhtsa_task = asyncio.create_task(_safe_nhtsa_fetch(vehicle_make, vehicle_model or "", vehicle_year))
 
     # --- Interchange Expansion (Phase 5) ---
     interchange_group: InterchangeGroup | None = None
@@ -663,6 +674,25 @@ async def _search_parts_inner(
     # --- Build AI analysis for response ---
     ai_analysis = _build_ai_analysis(ai_result) if ai_result else None
 
+    # --- Persist AI knowledge to canonical DB (learning loop) ---
+    if ai_result and not ai_result.error:
+        try:
+            await persist_ai_knowledge(ai_result, normalized_query)
+        except Exception as e:
+            logger.warning(f"Knowledge persistence failed: {e}")
+
+    # --- Build vehicle intelligence (NHTSA + repair resources) ---
+    vehicle_intel = None
+    effective_make = ai_result.vehicle_make if ai_result else vehicle_make
+    if effective_make:
+        vehicle_intel = await _build_vehicle_intelligence(
+            make=effective_make,
+            model=(ai_result.vehicle_model if ai_result else vehicle_model) or "",
+            year=vehicle_year,
+            part_description=analysis.part_description,
+            nhtsa_task=nhtsa_task,
+        )
+
     # Build response
     search_results = SearchResults(
         market_listings=market_listings,
@@ -679,6 +709,7 @@ async def _search_parts_inner(
         "cached": False,
         "intelligence": intelligence.model_dump(),
         "ai_analysis": ai_analysis.model_dump() if ai_analysis else None,
+        "vehicle_intelligence": vehicle_intel.model_dump() if vehicle_intel else None,
     }
 
     # Cache overall result with tiered TTL based on quality
@@ -911,4 +942,64 @@ def _build_ai_analysis(result: AIAdvisorResult) -> AIAnalysis | None:
         avoid=avoid,
         notes=result.notes,
         relevant_makes=result.relevant_makes,
+    )
+
+
+async def _safe_nhtsa_fetch(make: str, model: str, year: str) -> NHTSAResult | None:
+    """Fetch NHTSA data with timeout and error handling."""
+    try:
+        return await asyncio.wait_for(fetch_nhtsa_data(make, model, year), timeout=8)
+    except TimeoutError:
+        logger.warning("NHTSA fetch timed out after 8s")
+        return None
+    except Exception as e:
+        logger.warning(f"NHTSA fetch failed: {e}")
+        return None
+
+
+async def _build_vehicle_intelligence(
+    make: str,
+    model: str,
+    year: str | None,
+    part_description: str | None,
+    nhtsa_task=None,
+) -> VehicleIntelligence:
+    """Build vehicle intelligence: NHTSA recalls + repair resources."""
+    recalls = []
+    complaint_count = 0
+
+    # Collect NHTSA results if we started a task
+    if nhtsa_task:
+        nhtsa_result: NHTSAResult | None = await nhtsa_task
+        if nhtsa_result:
+            # Filter to relevant recalls/complaints if we know the part
+            filtered = filter_relevant(nhtsa_result, part_description)
+            recalls = [
+                RecallInfo(
+                    campaign_number=r.campaign_number,
+                    component=r.component,
+                    summary=r.summary,
+                    consequence=r.consequence,
+                    remedy=r.remedy,
+                )
+                for r in filtered.recalls[:5]  # Top 5 most relevant
+            ]
+            complaint_count = len(filtered.complaints)
+
+    # Get repair resources for this make
+    resources_raw = get_resources_for_make(make)
+    repair_resources = [
+        RepairResource(
+            name=r["name"],
+            url=r["url"],
+            category=r["category"],
+            description=r["description"],
+        )
+        for r in resources_raw[:15]  # Cap at 15 resources
+    ]
+
+    return VehicleIntelligence(
+        recalls=recalls,
+        complaint_count=complaint_count,
+        repair_resources=repair_resources,
     )

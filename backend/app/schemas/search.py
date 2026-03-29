@@ -186,6 +186,33 @@ class AIAnalysis(BaseModel):
     error: str | None = None
 
 
+class RecallInfo(BaseModel):
+    """NHTSA recall information."""
+
+    campaign_number: str
+    component: str
+    summary: str
+    consequence: str = ""
+    remedy: str = ""
+
+
+class RepairResource(BaseModel):
+    """Curated repair resource link."""
+
+    name: str
+    url: str
+    category: str
+    description: str
+
+
+class VehicleIntelligence(BaseModel):
+    """Vehicle-specific intelligence: recalls, resources, known issues."""
+
+    recalls: list[RecallInfo] = Field(default_factory=list)
+    complaint_count: int = 0
+    repair_resources: list[RepairResource] = Field(default_factory=list)
+
+
 class SearchResponse(BaseModel):
     """Response from /search endpoint."""
 
@@ -198,3 +225,4 @@ class SearchResponse(BaseModel):
     cached: bool = False
     intelligence: PartIntelligence | None = None
     ai_analysis: AIAnalysis | None = None
+    vehicle_intelligence: VehicleIntelligence | None = None

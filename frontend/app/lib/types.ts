@@ -101,6 +101,27 @@ export interface ListingGroup {
   best_value_score: number;
 }
 
+export interface RecallInfo {
+  campaign_number: string;
+  component: string;
+  summary: string;
+  consequence: string;
+  remedy: string;
+}
+
+export interface RepairResource {
+  name: string;
+  url: string;
+  category: string;
+  description: string;
+}
+
+export interface VehicleIntelligence {
+  recalls: RecallInfo[];
+  complaint_count: number;
+  repair_resources: RepairResource[];
+}
+
 export interface SearchResponse {
   query: string;
   extracted_part_numbers: string[];
@@ -115,6 +136,7 @@ export interface SearchResponse {
   cached: boolean;
   intelligence?: PartIntelligence | null;
   ai_analysis?: AIAnalysis | null;
+  vehicle_intelligence?: VehicleIntelligence | null;
 }
 
 /* ── AI Analysis Types ────────────────────────────────────────────── */
