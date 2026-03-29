@@ -13,6 +13,7 @@ import SourceStatusBar from "./components/SourceStatusBar";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import PriceChart from "./components/PriceChart";
 import SavedSearches from "./components/SavedSearches";
+import VehicleIntelligence from "./components/VehicleIntelligence";
 import { saveSearch as saveSearchApi } from "./lib/api";
 
 function getPrimaryPartNumber(data: SearchResponse | null): string | null {
@@ -435,7 +436,17 @@ export default function Home() {
           {/* 2. AI Recommendations */}
           {hasAI && ai && <AIRecommendations analysis={ai} />}
 
-          {/* 3. Price history for the part(s) found */}
+          {/* 3. Vehicle intelligence: recalls, repair resources */}
+          {data.vehicle_intelligence && (
+            <VehicleIntelligence data={data.vehicle_intelligence} />
+          )}
+
+          {/* 4. External links */}
+          {data.results.external_links.length > 0 && (
+            <ExternalLinksSection links={data.results.external_links} />
+          )}
+
+          {/* 5. Price history for the part(s) found */}
           {primaryPartNumber != null && (
             <section>
               <h2 className="section-title mb-4">
@@ -515,11 +526,6 @@ export default function Home() {
 
           {/* Salvage (when relevant, e.g. not consumables) */}
           {hasSalvage && <SalvageSection hits={data.results.salvage_hits} />}
-
-          {/* External links to other sources */}
-          {data.results.external_links.length > 0 && (
-            <ExternalLinksSection links={data.results.external_links} />
-          )}
 
           {/* Warnings (collapsed) */}
           {data.warnings.length > 0 && (
